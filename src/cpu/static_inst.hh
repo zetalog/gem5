@@ -324,7 +324,7 @@ class StaticInst : public RefCounted, public StaticInstFlags
      * should not be cached, this function should be overridden directly.
      */
     virtual const std::string &disassemble(Addr pc,
-        const SymbolTable *symtab = 0) const;
+        const SymbolTable *symtab = 0, bool redisasm = false) const;
 
     /**
      * Print a separator separated list of this instruction's set flag
@@ -334,6 +334,13 @@ class StaticInst : public RefCounted, public StaticInstFlags
 
     /// Return name of machine instruction
     std::string getName() { return mnemonic; }
+
+    /**
+     * Can be overridden by the immediate branch instructions, to save
+     * the branch target into the symbol table.
+     */
+    virtual bool
+    markTarget(Addr pc, Addr &Target, SymbolTable *symtab);
 
   protected:
     template<typename T>

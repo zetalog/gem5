@@ -52,6 +52,31 @@ SymbolTable::clear()
 }
 
 bool
+SymbolTable::insert_target(Addr address)
+{
+    ostringstream ostr;
+    string symbol;
+    string target;
+    Addr symAddr;
+
+    if (!findNearestSymbol(address, symbol, symAddr))
+        return false;
+
+    // Avoid adding named branch target (label) for a named symbol.
+    if (address == symAddr)
+        return true;
+
+    // Avoid adding duplicated label.
+    if (findLabel(address, target))
+        return true;
+
+    ostr << symbol << "_" << address - symAddr;
+    targetTable.insert(make_pair(address, ostr.str()));
+
+    return true;
+}
+
+bool
 SymbolTable::insert(Addr address, string symbol)
 {
     if (symbol.empty())
