@@ -56,7 +56,13 @@ std::string
 BranchImm::generateDisassembly(Addr pc, const SymbolTable *symtab) const
 {
     std::stringstream ss;
+    std::string label;
     printMnemonic(ss, "", false);
+    if (symtab && symtab->findLabel(pc + imm, label))
+        ccprintf(ss, "%s", label);
+    else
+        ccprintf(ss, "#%d", imm);
+    ccprintf(ss, "\t// ");
     printTarget(ss, pc + imm, symtab);
     return ss.str();
 }
@@ -70,6 +76,15 @@ BranchRegReg::generateDisassembly(Addr pc, const SymbolTable *symtab) const
     ccprintf(ss, ", ");
     printIntReg(ss, op2);
     return ss.str();
+}
+
+bool
+BranchImm::markTarget(Addr pc, Addr &target, SymbolTable *symtab)
+{
+    target = pc + imm;
+    if (symtab)
+        symtab->insert_target(target);
+    return true;
 }
 
 } // namespace ArmISA
