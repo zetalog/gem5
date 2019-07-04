@@ -63,6 +63,7 @@ class BranchImm64 : public ArmStaticInst
 
     std::string generateDisassembly(
             Addr pc, const SymbolTable *symtab) const override;
+    bool markTarget(Addr pc, Addr &target, SymbolTable *symtab) override;
 };
 
 // Conditionally Branch to a target computed with an immediate
@@ -79,6 +80,7 @@ class BranchImmCond64 : public BranchImm64
 
     std::string generateDisassembly(
             Addr pc, const SymbolTable *symtab) const override;
+    bool markTarget(Addr pc, Addr &target, SymbolTable *symtab) override;
 };
 
 // Branch to a target computed with a register
@@ -143,6 +145,7 @@ class BranchImmReg64 : public ArmStaticInst
 
     std::string generateDisassembly(
             Addr pc, const SymbolTable *symtab) const override;
+    bool markTarget(Addr pc, Addr &target, SymbolTable *symtab) override;
 };
 
 // Branch to a target computed with two immediates
@@ -169,6 +172,7 @@ class BranchImmImmReg64 : public ArmStaticInst
 
     std::string generateDisassembly(
             Addr pc, const SymbolTable *symtab) const override;
+    bool markTarget(Addr pc, Addr &target, SymbolTable *symtab) override;
 };
 
 }
