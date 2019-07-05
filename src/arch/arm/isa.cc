@@ -38,6 +38,7 @@
  *          Ali Saidi
  */
 
+#include "arch/arm/insts/static_inst.hh"
 #include "arch/arm/isa.hh"
 #include "arch/arm/pmu.hh"
 #include "arch/arm/system.hh"
@@ -2157,6 +2158,21 @@ ISA::zeroSveVecRegUpperPart(VecRegContainer &vc, unsigned eCount)
     for (int i = 2; i < eCount; ++i) {
         vv[i] = 0;
     }
+}
+
+void
+ISA::dumpCallContexts(BaseCPU *cpu, ThreadContext *tc,
+                      Addr addr, Addr size, uint64_t data)
+{
+    if (cpu->simpoint_asm.is_open())
+        cpu->simpoint_asm << "  b     simpoint_start" << std::endl;
+}
+
+void
+ISA::dumpCallReturn(BaseCPU *cpu)
+{
+    if (cpu->simpoint_asm.is_open())
+        cpu->simpoint_asm << "  ret" << std::endl;
 }
 
 }  // namespace ArmISA

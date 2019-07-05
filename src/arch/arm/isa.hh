@@ -709,7 +709,16 @@ namespace ArmISA
 
         void startup(ThreadContext *tc);
 
-        Enums::DecoderFlavour decoderFlavour() const { return _decoderFlavour; }
+        // Dump contexts of a sliced call
+        void dumpCallContexts(BaseCPU *cpu, ThreadContext *tc,
+                              Addr addr, Addr size, uint64_t value);
+        // Dump call return instruction
+        void dumpCallReturn(BaseCPU *cpu);
+
+        Enums::DecoderFlavour decoderFlavour() const
+        {
+            return _decoderFlavour;
+        }
 
         /** Getter for haveGICv3CPUInterface */
         bool haveGICv3CpuIfc() const
