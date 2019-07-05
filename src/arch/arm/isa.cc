@@ -38,6 +38,7 @@
  *          Ali Saidi
  */
 
+#include "arch/arm/insts/static_inst.hh"
 #include "arch/arm/isa.hh"
 #include "arch/arm/pmu.hh"
 #include "arch/arm/system.hh"
@@ -2132,6 +2133,155 @@ ISA::zeroSveVecRegUpperPart(VecRegContainer &vc, unsigned eCount)
     for (int i = 2; i < eCount; ++i) {
         vv[i] = 0;
     }
+}
+
+void
+ISA::dumpIntReg(BaseCPU *cpu, ThreadContext *tc, RegIndex idx, RegVal val)
+{
+    ExtMachInst emi = 0;
+    emi.aarch64 = true;
+    ArmStaticInstEncoder encoder(emi);
+
+    cpu->simpoint_asm << "  mov   ";
+    encoder.encodeIntReg(cpu->simpoint_asm, idx);
+    cpu->simpoint_asm << ", #0x";
+    cpu->simpoint_asm << std::hex << val << std::endl;
+}
+
+void
+ISA::dumpIntReg(BaseCPU *cpu, ThreadContext *tc, RegIndex idx)
+{
+    dumpIntReg(cpu, tc, idx, tc->readIntReg(idx));
+}
+
+void
+ISA::dumpMiscReg(BaseCPU *cpu, ThreadContext *tc, RegIndex idx)
+{
+    ExtMachInst emi = 0;
+    emi.aarch64 = true;
+    ArmStaticInstEncoder encoder(emi);
+
+    cpu->simpoint_asm << "  mov   x29, #0x";
+    cpu->simpoint_asm << std::hex << readMiscReg(idx, tc) << std::endl;
+    cpu->simpoint_asm << "  mrs   x29, ";
+    encoder.encodeMiscReg(cpu->simpoint_asm, idx);
+    cpu->simpoint_asm << std::endl;
+}
+
+uint64_t
+ISA::readMem(BaseCPU *cpu, ThreadContext *tc, Addr addr,
+    bool (*__readMem)(BaseCPU *cpu, Addr, uint8_t *, unsigned,
+                      Request::Flags flags))
+{
+    uint64_t val;
+    Request::Flags flags = ArmISA::TLB::AllowUnaligned |
+                           ArmISA::TLB::MustBeOne;
+
+    __readMem(cpu, addr, (uint8_t *)(&val), sizeof(uint64_t), flags);
+    return val;
+}
+
+void
+ISA::dumpMem(BaseCPU *cpu, ThreadContext *tc, Addr addr, uint64_t data)
+{
+    if (cpu->simpoint_asm.is_open()) {
+        cpu->simpoint_asm << "0x" << std::hex << addr << ":0x";
+        cpu->simpoint_asm << std::hex << data << std::endl;
+    }
+}
+
+void
+ISA::dumpMem(BaseCPU *cpu, ThreadContext *tc, Addr addr,
+    bool (*__readMem)(BaseCPU *cpu, Addr, uint8_t *, unsigned,
+                      Request::Flags flags))
+{
+    uint64_t data;
+    Request::Flags flags = ArmISA::TLB::AllowUnaligned |
+                           ArmISA::TLB::MustBeOne;
+
+    __readMem(cpu, addr, (uint8_t *)(&data), sizeof(uint64_t), flags);
+    dumpMem(cpu, tc, addr, data);
+}
+
+void
+ISA::dumpContextRegs(BaseCPU *cpu, ThreadContext *tc,
+    bool (*__readMem)(BaseCPU *cpu, Addr, uint8_t *, unsigned,
+                      Request::Flags flags))
+{
+    uint64_t sp, fp, lr, spBottom, lrLast, ptr;
+    uint64_t fpVal, lrVal;
+    int i;
+
+    if (cpu->simpoint_asm.is_open()) {
+        cpu->simpoint_asm << "simpoint_entry:" << std::endl;
+        // Save special registers, PC is not saved as the dumped symbols
+        // will be linked into the new binary that is executed using the
+        // new link addresses.
+        fp = tc->readIntReg(INTREG_X29);
+        lrLast = lr = tc->readIntReg(INTREG_X30);
+        // Only user programs are simulated.
+        spBottom = sp = tc->readIntReg(INTREG_SP0);
+        for (i = 0; i < NumIntRegs; i++) {
+            if (i != 29 && i != 30)
+                dumpIntReg(cpu, tc, INTREG_X0 + i);
+        }
+        dumpMiscReg(cpu, tc, MISCREG_CPSR);
+        // Dump stack:
+        //      +----------------+
+        //      | LR             |
+        //      +----------------+
+        //      | FP             |
+        // -FP->+----------------+
+        //      | Dynamic Alloc  |
+        //      +----------------+
+        //      | Stack Arg Area |
+        // -SP->+----------------+
+        //      | ...            |
+        //      +----------------+
+        //      | Callee Saved   |
+        //      +----------------+
+        //      | Local Vars     |
+        //      +----------------+
+        //      | LR             |
+        //      +----------------+
+        //      | FP             |
+        // -FP->+----------------+
+        //      | Dynamic Alloc  |
+        //      +----------------+
+        //      | Stack Arg Area |
+        // -SP->+----------------+
+        while (fp != 0) {
+            i = 0;
+            ptr = sp;
+            while (ptr < fp) {
+                dumpMem(cpu, tc, ptr + i, __readMem);
+                ptr += 8;
+            }
+            fpVal = readMem(cpu, tc, (Addr)fp, __readMem);
+            std::cout << "FP:0x" << std::hex << fpVal << std::endl;
+            lrVal = readMem(cpu, tc, (Addr)(fp + 8), __readMem);
+            std::cout << "LR:0x" << std::hex << lrVal << std::endl;
+            sp = fp;
+            fp = fpVal;
+            lr = lrVal;
+        }
+        // Restore altered special registers.
+        tc->setIntReg(INTREG_X29, fp);
+        tc->setIntReg(INTREG_X30, lrLast);
+        tc->setIntReg(INTREG_SP0, spBottom);
+        // Dump altered special registers.
+        dumpIntReg(cpu, tc, INTREG_X29);
+        dumpIntReg(cpu, tc, INTREG_X30);
+        dumpIntReg(cpu, tc, INTREG_SP0);
+        cpu->simpoint_asm << "  b     simpoint_start" << std::endl;
+    }
+}
+
+void
+ISA::dumpCallReturn(BaseCPU *cpu)
+{
+    if (cpu->simpoint_asm.is_open())
+        cpu->simpoint_asm << "  ret" << std::endl;
 }
 
 }  // namespace ArmISA
