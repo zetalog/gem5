@@ -38,6 +38,7 @@
  *          Ali Saidi
  */
 
+#include "arch/arm/insts/static_inst.hh"
 #include "arch/arm/isa.hh"
 #include "arch/arm/pmu.hh"
 #include "arch/arm/system.hh"
@@ -2157,6 +2158,40 @@ ISA::zeroSveVecRegUpperPart(VecRegContainer &vc, unsigned eCount)
     for (int i = 2; i < eCount; ++i) {
         vv[i] = 0;
     }
+}
+
+void
+ISA::dumpSimpointInit(BaseCPU *cpu)
+{
+    cpu->simpoint_asm << "/* Begin of SimPoint */" << std::endl;
+    cpu->simpoint_asm << ".global simpoint_entry" << std::endl;
+    cpu->simpoint_asm << ".section .text" << std::endl;
+    cpu->simpoint_asm << ".balign 4" << std::endl;
+    cpu->simpoint_asm << "simpoint_entry:" << std::endl;
+}
+
+void
+ISA::dumpSimpointExit(BaseCPU *cpu)
+{
+    cpu->simpoint_asm << "/* End of SimPoint */" << std::endl;
+    cpu->simpoint_asm << "simpoint_exit:" << std::endl;
+    cpu->simpoint_asm << "exit:" << std::endl;
+    cpu->simpoint_asm << "  nop" << std::endl;
+    cpu->simpoint_asm << "  b     simpoint_exit" << std::endl;
+}
+
+void
+ISA::dumpSimpointStart(BaseCPU *cpu)
+{
+    cpu->simpoint_asm << "/* Jump to the head of SimPoint */" << std::endl;
+    cpu->simpoint_asm << "  b     simpoint_start" << std::endl;
+}
+
+void
+ISA::dumpSimpointStop(BaseCPU *cpu)
+{
+    cpu->simpoint_asm << "/* Jump to the tail of SimPoint */" << std::endl;
+    cpu->simpoint_asm << "  b     simpoint_exit" << std::endl;
 }
 
 }  // namespace ArmISA
