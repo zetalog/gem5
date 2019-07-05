@@ -730,7 +730,19 @@ namespace ArmISA
 
         void startup(ThreadContext *tc);
 
-        Enums::DecoderFlavour decoderFlavour() const { return _decoderFlavour; }
+        // Dump init of simpoint
+        void dumpSimpointInit(BaseCPU *cpu);
+        // Dump exit of simpoint
+        void dumpSimpointExit(BaseCPU *cpu);
+        // Dump start of simpoint
+        void dumpSimpointStart(BaseCPU *cpu);
+        // Dump stop of simpoint
+        void dumpSimpointStop(BaseCPU *cpu);
+
+        Enums::DecoderFlavour decoderFlavour() const
+        {
+            return _decoderFlavour;
+        }
 
         /** Getter for haveGICv3CPUInterface */
         bool haveGICv3CpuIfc() const

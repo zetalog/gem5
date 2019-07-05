@@ -168,6 +168,9 @@ def findCptDir(options, cptdir, testsys):
         testsys.cpu[0].simpoint_start_insts = simpoint_start_insts
         if testsys.switch_cpus != None:
             testsys.switch_cpus[0].simpoint_start_insts = simpoint_start_insts
+            if options.enable_simpoint_slicing:
+                testsys.switch_cpus[0].simpoint_disassembly_path = \
+                    joinpath(checkpoint_dir, "simpoint_slice.S")
 
         print("Resuming from SimPoint", end=' ')
         print("#%d, start_inst:%d, weight:%f, interval:%d, warmup:%d" %
@@ -390,7 +393,7 @@ def takeSimpointCheckpoints(simpoints, interval_length, cptdir):
     print("%d checkpoints taken" % num_checkpoints)
     sys.exit(code)
 
-def restoreSimpointCheckpoint():
+def restoreSimpointCheckpoint(options):
     exit_event = m5.simulate()
     exit_cause = exit_event.getCause()
 
@@ -404,6 +407,8 @@ def restoreSimpointCheckpoint():
 
         if exit_cause == "simpoint starting point found":
             print("Done running SimPoint!")
+            if options.enable_simpoint_slicing:
+                m5.sliceSimPoint()
             sys.exit(exit_event.getCode())
 
     print('Exiting @ tick %i because %s' % (m5.curTick(), exit_cause))
@@ -710,7 +715,7 @@ def run(options, root, testsys, cpu_class):
 
     # Restore from SimPoint checkpoints
     elif options.restore_simpoint_checkpoint != None:
-        restoreSimpointCheckpoint()
+        restoreSimpointCheckpoint(options)
 
     else:
         if options.fast_forward:
