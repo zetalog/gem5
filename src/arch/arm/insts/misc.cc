@@ -282,7 +282,15 @@ RegImmImmOp::generateDisassembly(Addr pc, const SymbolTable *symtab) const
     std::stringstream ss;
     printMnemonic(ss);
     printIntReg(ss, dest);
-    ccprintf(ss, ", #%d, #%d", imm1, imm2);
+    // Print LSL for Move (wide immediate): MOVZ, MOVN and MOVK.
+    std::string str(ss.str());
+    if (str.find("movz") != std::string::npos ||
+            str.find("movn") != std::string::npos ||
+            str.find("movk") != std::string::npos) {
+        ccprintf(ss, ", #%d, LSL #%d", imm1, imm2);
+    } else {
+        ccprintf(ss, ", #%d, #%d", imm1, imm2);
+    }
     return ss.str();
 }
 
