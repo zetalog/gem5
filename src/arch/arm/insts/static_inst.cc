@@ -303,7 +303,7 @@ ArmStaticInst::printIntReg(std::ostream &os, RegIndex reg_idx,
             ccprintf(os, "ureg0");
         else if (reg_idx == INTREG_SPX)
             ccprintf(os, "%s%s", (opWidth == 32) ? "w" : "", "sp");
-        else if (reg_idx == INTREG_X31)
+        else if (reg_idx == INTREG_X31 || reg_idx == INTREG_ZERO)
             ccprintf(os, "%szr", (opWidth == 32) ? "w" : "x");
         else
             ccprintf(os, "%s%d", (opWidth == 32) ? "w" : "x", reg_idx);
@@ -598,6 +598,16 @@ ArmStaticInst::printDataInst(std::ostream &os, bool withImm,
     if (rd != INTREG_ZERO) {
         firstOp = false;
         printIntReg(os, rd);
+    }
+    if (rd == INTREG_ZERO) { // Print zero register as destination for SUBS (immediate).
+        std::stringstream ss;
+        ss << os.rdbuf();
+        std::string str(ss.str());
+        int pos = str.find("subs");
+        if (pos != std::string::npos) {
+            firstOp = false;
+            printIntReg(os, rd);
+        }
     }
 
     // Source 1.
