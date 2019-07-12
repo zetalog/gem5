@@ -74,6 +74,20 @@ NonCachingSimpleCPUParams::create()
 }
 
 void
+NonCachingSimpleCPU::dumpSimulatedMemories()
+{
+    SimpleExecContext &t_info = *threadInfo[curThread];
+    SimpleThread* thread = t_info.thread;
+
+    std::cout << "Dumping memories..." << std::endl;
+    for (auto &item : reads) {
+        thread->getIsaPtr()->dumpContextMems(this, thread,
+                                             item.addr, item.size, item.value);
+    }
+    thread->getIsaPtr()->dumpContextRegsLate(this, thread);
+}
+
+void
 NonCachingSimpleCPU::dumpSimulatedSymbols()
 {
     if (!debugSymbolTable || !simpoint_asm.is_open())
@@ -88,25 +102,26 @@ NonCachingSimpleCPU::dumpSimulatedSymbols()
     SymbolTable *symtab = debugSymbolTable;
 
     int size = symbols.size();
-    int i = 0;
+    int i;
     std::string sym_str;
     std::string lab_str;
     Addr funcStart, funcEnd, addr, target;
     StaticInstPtr instPtr;
     std::string disassembly;
     TheISA::PCState pc;
-    bool doDump;
+    bool doDumpSymbols = false;
 
+realDump:
+    i = 0;
     while (i < size) {
         if (!symtab->findNearestSymbol(symbols[i], sym_str,
                                        funcStart, funcEnd))
             return;
         if (funcStart != symbols[i])
             return;
-        simpoint_asm << std::endl << sym_str << ":" << std::endl;
-        doDump = false;
 
-dumpAgain:
+        if (doDumpSymbols)
+            simpoint_asm << std::endl << sym_str << ":" << std::endl;
         addr = funcStart;
         pc = thread->pcState();
         pc.set(addr);
@@ -114,9 +129,9 @@ dumpAgain:
         t_info.fetchOffset = 0;
 
         while (addr < funcEnd) {
-            if (doDump && simpoint_entry == addr)
+            if (doDumpSymbols && simpoint_entry == addr)
                 simpoint_asm << "simpoint_start:" << std::endl;
-            if (doDump && symtab->findTarget(addr, lab_str))
+            if (doDumpSymbols && symtab->findTarget(addr, lab_str))
                 simpoint_asm << lab_str << ":" << std::endl;
 
             Fault fault = NoFault;
@@ -143,7 +158,7 @@ dumpAgain:
                     t_info.fetchOffset += sizeof(MachInst);
                 }
 
-                if (doDump) {
+                if (doDumpSymbols) {
                     disassembly = instPtr->disassemble(addr, symtab, true);
                     simpoint_asm << disassembly << std::endl;
                 } else {
@@ -159,11 +174,12 @@ dumpAgain:
             pc = thread->pcState();
             addr = pc.instAddr();
         }
-        if (!doDump) {
-            doDump = true;
-            goto dumpAgain;
-        }
         i++;
+    }
+    if (!doDumpSymbols) {
+        doDumpSymbols = true;
+        dumpSimulatedMemories();
+        goto realDump;
     }
 
     size = branches.size();
@@ -202,5 +218,5 @@ NonCachingSimpleCPU::dumpSimulatedRegisters()
     SimpleThread* thread = t_info.thread;
 
     std::cout << "Dumping registers..." << std::endl;
-    thread->getIsaPtr()->dumpContextRegs(this, thread, ::readMem);
+    thread->getIsaPtr()->dumpContextRegsEarly(this, thread, ::readMem);
 }
