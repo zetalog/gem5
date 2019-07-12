@@ -74,6 +74,19 @@ NonCachingSimpleCPUParams::create()
 }
 
 void
+NonCachingSimpleCPU::dumpSimulatedMemories()
+{
+    SimpleExecContext &t_info = *threadInfo[curThread];
+    SimpleThread* thread = t_info.thread;
+
+    for (auto &item : reads) {
+        thread->getIsaPtr()->dumpContextMems(this, thread,
+                                             item.addr, item.size, item.value);
+    }
+    thread->getIsaPtr()->dumpContextRegsLate(this, thread);
+}
+
+void
 NonCachingSimpleCPU::dumpSimulatedSymbols()
 {
     if (!debugSymbolTable || !simpoint_asm.is_open())
@@ -95,7 +108,7 @@ NonCachingSimpleCPU::dumpSimulatedSymbols()
     StaticInstPtr instPtr;
     std::string disassembly;
     TheISA::PCState pc;
-    bool doDump;
+    bool doDump, dumpedMemories = false;
 
     while (i < size) {
         if (!symtab->findNearestSymbol(symbols[i], sym_str,
@@ -103,10 +116,14 @@ NonCachingSimpleCPU::dumpSimulatedSymbols()
             return;
         if (funcStart != symbols[i])
             return;
-        simpoint_asm << std::endl << sym_str << ":" << std::endl;
         doDump = false;
 
 dumpAgain:
+        if (i == 0 && doDump && !dumpedMemories) {
+            dumpSimulatedMemories();
+            dumpedMemories = true;
+            simpoint_asm << std::endl << sym_str << ":" << std::endl;
+        }
         addr = funcStart;
         pc = thread->pcState();
         pc.set(addr);
@@ -202,5 +219,5 @@ NonCachingSimpleCPU::dumpSimulatedRegisters()
     SimpleThread* thread = t_info.thread;
 
     std::cout << "Dumping registers..." << std::endl;
-    thread->getIsaPtr()->dumpContextRegs(this, thread, ::readMem);
+    thread->getIsaPtr()->dumpContextRegsEarly(this, thread, ::readMem);
 }
