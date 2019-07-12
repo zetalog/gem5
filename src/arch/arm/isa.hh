@@ -709,6 +709,9 @@ namespace ArmISA
 
         void startup(ThreadContext *tc);
 
+        // Dump contexts of a sliced call
+        void dumpCallContexts(BaseCPU *cpu, ThreadContext *tc,
+                              Addr addr, Addr size, uint64_t value);
         // Dump init of simpoint
         void dumpSimpointInit(BaseCPU *cpu);
         // Dump exit of simpoint

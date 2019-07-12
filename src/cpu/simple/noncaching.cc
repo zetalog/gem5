@@ -80,6 +80,11 @@ NonCachingSimpleCPU::dumpSimulatedContexts()
     SimpleThread* thread = t_info.thread;
 
     thread->getIsaPtr()->dumpSimpointInit(this);
+    std::cout << "Dumping contexts..." << std::endl;
+    simpoint_asm << "/* Restore memory reads */" << std::endl;
+    for (auto &item : reads)
+        thread->getIsaPtr()->dumpCallContexts(this, thread,
+            item.addr, item.size, item.value);
     thread->getIsaPtr()->dumpSimpointStart(this);
 }
 
