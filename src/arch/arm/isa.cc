@@ -2164,9 +2164,45 @@ void
 ISA::dumpCallContexts(BaseCPU *cpu, ThreadContext *tc,
                       Addr addr, Addr size, uint64_t data)
 {
+    std::string label;
+    SymbolTable *symtab = debugSymbolTable;
+
     if (cpu->simpoint_asm.is_open()) {
         cpu->simpoint_asm << ".global simpoint_entry" << std::endl;
         cpu->simpoint_asm << "simpoint_entry:" << std::endl;
+
+        // TODO: Try to skip .text access at a late stage
+        if (symtab && symtab->findLabel(addr, label))
+            goto exit_call;
+
+        if (data < 0x10000)
+            cpu->simpoint_asm << "  mov   x29, #";
+        else
+            cpu->simpoint_asm << "  ldr   x29, =";
+        cpu->simpoint_asm << "0x" << std::hex << data << std::dec;
+        cpu->simpoint_asm << std::endl;
+        if (addr < 0x10000)
+            cpu->simpoint_asm << "  mov   x30, #";
+        else
+            cpu->simpoint_asm << "  ldr   x30, =";
+        cpu->simpoint_asm << "0x" << std::hex << addr << std::dec;
+        cpu->simpoint_asm << std::endl;
+        switch (size) {
+        case 1:
+            cpu->simpoint_asm << "  strb  w29, [x30]" << std::endl;
+            break;
+        case 2:
+            cpu->simpoint_asm << "  strh  w29, [x30]" << std::endl;
+            break;
+        case 4:
+            cpu->simpoint_asm << "  str   w29, [x30]" << std::endl;
+            break;
+        case 8:
+            cpu->simpoint_asm << "  str   x29, [x30]" << std::endl;
+            break;
+        }
+
+exit_call:
         cpu->simpoint_asm << "  b     simpoint_start" << std::endl;
     }
 }
