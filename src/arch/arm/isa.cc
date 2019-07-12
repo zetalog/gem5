@@ -2243,7 +2243,7 @@ ISA::dumpStacked(BaseCPU *cpu, ThreadContext *tc, uint64_t data)
 }
 
 void
-ISA::dumpContextRegs(BaseCPU *cpu, ThreadContext *tc,
+ISA::dumpContextRegsEarly(BaseCPU *cpu, ThreadContext *tc,
     bool (*__readMem)(BaseCPU *cpu, Addr, uint8_t *, unsigned,
                       Request::Flags flags))
 {
@@ -2348,10 +2348,55 @@ ISA::dumpContextRegs(BaseCPU *cpu, ThreadContext *tc,
         tc->setIntReg(INTREG_X29, fpLast);
         tc->setIntReg(INTREG_X30, lrLast);
         tc->setIntReg(INTREG_SP0, spBottom);
+        // TODO: save current FP/LR to target CPU.
+        saved_fp = i + 8 + fpLast - spTop;
+        saved_lr = lrLast;
+    }
+}
+
+void
+ISA::dumpContextRegsLate(BaseCPU *cpu, ThreadContext *tc)
+{
+    if (cpu->simpoint_asm.is_open()) {
         // Dump altered special registers.
-        dumpFP(cpu, tc, i + 8 + fpLast - spTop);
-        dumpLR(cpu, tc, lrLast);
+        dumpFP(cpu, tc, saved_fp);
+        dumpLR(cpu, tc, saved_lr);
         cpu->simpoint_asm << "  b     simpoint_start" << std::endl;
+    }
+}
+
+void
+ISA::dumpContextMems(BaseCPU *cpu, ThreadContext *tc,
+                     Addr addr, Addr size, uint64_t data)
+{
+    SymbolTable *symtab = debugSymbolTable;
+    std::string label;
+
+    if (cpu->simpoint_asm.is_open()) {
+        // TODO: Try to skip .text access at a late stage
+        if (symtab && symtab->findLabel(addr, label))
+            return;
+
+        cpu->simpoint_asm << "  mov   x29, ";
+        cpu->simpoint_asm << "#0x" << std::hex << data << std::dec;
+        cpu->simpoint_asm << std::endl;
+        cpu->simpoint_asm << "  mov   x30, ";
+        cpu->simpoint_asm << "#0x" << std::hex << addr << std::dec;
+        cpu->simpoint_asm << std::endl;
+        switch (size) {
+        case 1:
+            cpu->simpoint_asm << "  strb  w29, [x30]" << std::endl;
+            break;
+        case 2:
+            cpu->simpoint_asm << "  strh  w29, [x30]" << std::endl;
+            break;
+        case 4:
+            cpu->simpoint_asm << "  str   w29, [x30]" << std::endl;
+            break;
+        case 8:
+            cpu->simpoint_asm << "  str   x29, [x30]" << std::endl;
+            break;
+        }
     }
 }
 
