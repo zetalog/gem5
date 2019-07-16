@@ -440,6 +440,10 @@ class MacroMemOp : public PredMacroOp
 class PairMemOp : public PredMacroOp
 {
   public:
+    RegIndex _rn, _rt, _rt2;
+    bool _writeback,_post;
+    int32_t _imm;
+    uint32_t _size;
     enum AddrMode {
         AddrMd_Offset,
         AddrMd_PreIndex,
@@ -451,6 +455,9 @@ class PairMemOp : public PredMacroOp
               uint32_t size, bool fp, bool load, bool noAlloc, bool signExt,
               bool exclusive, bool acrel, int64_t imm, AddrMode mode,
               IntRegIndex rn, IntRegIndex rt, IntRegIndex rt2);
+
+    std::string generateDisassembly(
+            Addr pc, const SymbolTable *symtab) const override;
 };
 
 class BigFpMemImmOp : public PredMacroOp
