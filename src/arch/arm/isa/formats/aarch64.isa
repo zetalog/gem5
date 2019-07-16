@@ -111,7 +111,10 @@ namespace Aarch64
               case 0x2:
                 return new SubXImm(machInst, rdsp, rnsp, imm);
               case 0x3:
-                return new SubXImmCc(machInst, rdzr, rnsp, imm);
+                if (rdzr == INTREG_ZERO)
+                  return new CmpXImmCc(machInst, rdzr, rnsp, imm);
+                else
+                  return new SubXImmCc(machInst, rdzr, rnsp, imm);
               default:
                 M5_UNREACHABLE;
             }
@@ -1893,7 +1896,12 @@ namespace Aarch64
                   case 0x2:
                     return new SubXSReg(machInst, rdzr, rn, rm, imm6, type);
                   case 0x3:
-                    return new SubXSRegCc(machInst, rdzr, rn, rm, imm6, type);
+                    if (rdzr == INTREG_ZERO)
+                      return new
+                          CmpXSRegCc(machInst, rdzr, rn, rm, imm6, type);
+                    else
+                      return new
+                          SubXSRegCc(machInst, rdzr, rn, rm, imm6, type);
                   default:
                     M5_UNREACHABLE;
                 }
@@ -1918,7 +1926,12 @@ namespace Aarch64
                   case 0x2:
                     return new SubXEReg(machInst, rdsp, rnsp, rm, type, imm3);
                   case 0x3:
-                    return new SubXERegCc(machInst, rdzr, rnsp, rm, type, imm3);
+                    if (rdzr == INTREG_ZERO)
+                      return new
+                          CmpXERegCc(machInst, rdzr, rnsp, rm, type, imm3);
+                    else
+                      return new
+                          SubXERegCc(machInst, rdzr, rnsp, rm, type, imm3);
                   default:
                     M5_UNREACHABLE;
                 }
