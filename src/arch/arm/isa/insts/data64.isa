@@ -99,7 +99,10 @@ let {{
         ccCode = createCcCode64(carryCode64[flagType], overflowCode64[flagType])
         Name = mnem.capitalize() + suffix
         iop = InstObjParams(mnem, Name, base, code)
-        iopCc = InstObjParams(mnem + "s", Name + "Cc", base, code + ccCode)
+        if (mnem == "cmp"):
+            iopCc = InstObjParams(mnem, Name + "Cc", base, code + ccCode)
+        else:
+            iopCc = InstObjParams(mnem + "s", Name + "Cc", base, code + ccCode)
 
         def subst(iop):
             global header_output, decoder_output, exec_output
@@ -142,6 +145,7 @@ let {{
     buildDataInst("and", "Dest64 = resTemp = Op164 & secOp;")
     buildDataInst("eor", "Dest64 = Op164 ^ secOp;", buildCc = False)
     buildXSRegDataInst("eon", "Dest64 = Op164 ^ ~secOp;", buildCc = False)
+    buildDataInst("cmp", "Dest64 = resTemp = Op164 - secOp;", "sub")
     buildDataInst("sub", "Dest64 = resTemp = Op164 - secOp;", "sub")
     buildDataInst("add", "Dest64 = resTemp = Op164 + secOp;", "add")
     buildXSRegDataInst("adc",
