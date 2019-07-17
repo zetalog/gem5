@@ -131,6 +131,7 @@ BaseCPU::BaseCPU(Params *p, bool is_checker)
       _dataMasterId(p->system->getMasterId(this, "data")),
       _taskId(ContextSwitchTaskId::Unknown), _pid(invldPid),
       _switchedOut(p->switched_out), _cacheLineSize(p->system->cacheLineSize()),
+      _simpointStarted(false),
       interrupts(p->interrupts), profileEvent(NULL),
       numThreads(p->numThreads), system(p->system),
       previousCycle(0), previousState(CPU_STATE_SLEEP),
@@ -179,6 +180,15 @@ BaseCPU::BaseCPU(Params *p, bool is_checker)
         const char *cause = "simpoint starting point found";
         for (size_t i = 0; i < p->simpoint_start_insts.size(); ++i)
             scheduleInstStop(0, p->simpoint_start_insts[i], cause);
+    }
+    // Set up instruction log file stream
+    std::string simpoint_asm_path = p->simpoint_disassembly_path.c_str();
+    if (!simpoint_asm_path.empty()) {
+        simpoint_asm.open(simpoint_asm_path);
+        if (simpoint_asm.is_open()) {
+            std::cout << "Disassembling simpoint to ";
+            std::cout << simpoint_asm_path << "." << std::endl;
+        }
     }
 
     if (p->max_insts_all_threads != 0) {
@@ -275,6 +285,7 @@ BaseCPU::~BaseCPU()
     delete profileEvent;
     delete[] comLoadEventQueue;
     delete[] comInstEventQueue;
+    simpoint_asm.close();
 }
 
 void
@@ -863,4 +874,143 @@ bool
 BaseCPU::waitForRemoteGDB() const
 {
     return params()->wait_for_remote_gdb;
+}
+
+bool
+BaseCPU::markExecuted(Addr address)
+{
+    int size = symbols.size();
+    int i = 0;
+    std::string sym_str;
+    Addr funcStart, funcEnd;
+
+    if (!debugSymbolTable)
+        return false;
+
+    if (!debugSymbolTable->findNearestSymbol(address, sym_str,
+                                             funcStart, funcEnd)) {
+        funcStart = address;
+        funcEnd = address + 1;
+    }
+
+    while (i < size) {
+        if (funcStart == symbols[i])
+            return false;
+
+        if (funcStart < symbols[i] &&
+            (i == 0 || funcStart > symbols[i - 1]))
+            break;
+        i++;
+    };
+    symbols.insert(symbols.begin() + i, funcStart);
+    return true;
+}
+
+bool
+BaseCPU::markStarted(Addr address)
+{
+    if (!_simpointStarted) {
+        simpoint_entry = address;
+        dumpSimulatedRegisters();
+        _simpointStarted = true;
+    }
+
+    return markExecuted(address);
+}
+
+bool
+BaseCPU::markBranched(Addr address)
+{
+    int size;
+    int i;
+
+    size = symbols.size();
+    i = 0;
+    while (i < size) {
+        if (address == symbols[i])
+            return false;
+        i++;
+    }
+
+    size = branches.size();
+    i = 0;
+    while (i < size) {
+        if (address == branches[i])
+            return false;
+
+        if (address < branches[i] &&
+            (i == 0 || address > branches[i - 1]))
+            break;
+        i++;
+    };
+    branches.insert(branches.begin() + i, address);
+    return true;
+}
+
+bool
+BaseCPU::find_mem_data(Addr addr, std::list<MemData> &data_array)
+{
+    for (auto &item : data_array) {
+        if (addr >= item.addr && addr < item.addr + item.size)
+            return true;
+    }
+    return false;
+}
+
+void
+BaseCPU::insert_mem_data(Addr addr, uint8_t value,
+                         std::list<MemData> &data_array)
+{
+    MemData data(addr, value);
+    bool merged = false;
+
+again:
+    for (auto it = data_array.begin(); it != data_array.end(); ++it) {
+        if ((*it).addr > data.addr) {
+            data_array.insert(it, data);
+            merged = true;
+            break;
+        }
+        if ((*it).merge(data)) {
+            data = *it;
+            data_array.erase(it);
+            goto again;
+        }
+    }
+    if (!merged)
+        data_array.push_back(data);
+}
+
+bool
+BaseCPU::markAccessed(OpClass opcls, Addr addr, Addr size, uint64_t value)
+{
+    int i;
+
+    // TODO: Try to skip stack accesses at an early stage
+    if (size > 8) {
+        std::cout << "WARN: Invalid access size ";
+        std::cout << std::dec << size << "." << std::endl;
+        size = 8;
+    }
+    for (i = 0; i < size; i++) {
+        Addr byteAddr = addr + i;
+        uint8_t byteData = (uint8_t)(value >> (i * 8));
+
+        if (!find_mem_data(byteAddr, reads) &&
+            !find_mem_data(byteAddr, writes)) {
+            // First time access
+            if (opcls == MemReadOp)
+                insert_mem_data(byteAddr, byteData, reads);
+            else
+                insert_mem_data(byteAddr, byteData, writes);
+        }
+    }
+    return true;
+}
+
+void
+sliceSimPoint()
+{
+    std::cout << "Slicing SimPoint..." << std::endl;
+    BaseCPU::dumpSimulatedInsts();
 }
