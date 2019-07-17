@@ -111,7 +111,10 @@ namespace Aarch64
               case 0x2:
                 return new SubXImm(machInst, rdsp, rnsp, imm);
               case 0x3:
-                return new SubXImmCc(machInst, rdzr, rnsp, imm);
+                if (rdzr == INTREG_ZERO)
+                  return new CmpXImmCc(machInst, rdzr, rnsp, imm);
+                else
+                  return new SubXImmCc(machInst, rdzr, rnsp, imm);
               default:
                 M5_UNREACHABLE;
             }
@@ -1271,6 +1274,7 @@ namespace Aarch64
                 IntRegIndex rd = (IntRegIndex)(uint8_t)bits(machInst, 4, 0);
                 IntRegIndex rdzr = makeZero(rd);
                 IntRegIndex rn = (IntRegIndex)(uint8_t)bits(machInst, 9, 5);
+                IntRegIndex rnzr = makeZero(rn);
                 IntRegIndex rm = (IntRegIndex)(uint8_t)bits(machInst, 20, 16);
                 switch (switchVal) {
                   case 0x0:
@@ -1278,9 +1282,22 @@ namespace Aarch64
                   case 0x1:
                     return new AddXSRegCc(machInst, rdzr, rn, rm, imm6, type);
                   case 0x2:
-                    return new SubXSReg(machInst, rdzr, rn, rm, imm6, type);
+                    if (rnzr == INTREG_ZERO)
+                      return new
+                          NegXSReg(machInst, rd, rnzr, rm, imm6, type);
+                    else
+                      return new
+                          SubXSReg(machInst, rdzr, rn, rm, imm6, type);
                   case 0x3:
-                    return new SubXSRegCc(machInst, rdzr, rn, rm, imm6, type);
+                    if (rdzr == INTREG_ZERO)
+                      return new
+                          CmpXSRegCc(machInst, rdzr, rn, rm, imm6, type);
+                    else if (rnzr == INTREG_ZERO)
+                      return new
+                          NegXSRegCc(machInst, rd, rnzr, rm, imm6, type);
+                    else
+                      return new
+                          SubXSRegCc(machInst, rdzr, rn, rm, imm6, type);
                   default:
                     M5_UNREACHABLE;
                 }
@@ -1305,7 +1322,12 @@ namespace Aarch64
                   case 0x2:
                     return new SubXEReg(machInst, rdsp, rnsp, rm, type, imm3);
                   case 0x3:
-                    return new SubXERegCc(machInst, rdzr, rnsp, rm, type, imm3);
+                    if (rdzr == INTREG_ZERO)
+                      return new
+                          CmpXERegCc(machInst, rdzr, rnsp, rm, type, imm3);
+                    else
+                      return new
+                          SubXERegCc(machInst, rdzr, rnsp, rm, type, imm3);
                   default:
                     M5_UNREACHABLE;
                 }
