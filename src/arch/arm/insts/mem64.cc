@@ -70,7 +70,7 @@ Memory64::startDisassembly(std::ostream &os) const
         printIntReg(os, dest);
     }
     ccprintf(os, ", [");
-    printIntReg(os, base);
+    printIntReg(os, base, 64); // Rn width is fixed to 64 for LDRx/STRx
 }
 
 void
