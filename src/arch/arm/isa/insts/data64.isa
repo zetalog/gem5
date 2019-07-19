@@ -118,7 +118,11 @@ let {{
     def buildXImmDataInst(mnem, code, flagType = "logic", \
                           buildCc = True, buildNonCc = True, \
                           suffix = "XImm"):
-        buildDataWork(mnem, immOp2 + code, flagType, suffix,
+        if (mnem == "adrp"):
+            buildDataWork(mnem, immOp2 + code, flagType, suffix,
+                      buildCc, buildNonCc, "AdrpDataXImmOp", "DataXImm")
+        else:
+            buildDataWork(mnem, immOp2 + code, flagType, suffix,
                       buildCc, buildNonCc, "DataXImmOp", "DataXImm")
 
     def buildXSRegDataInst(mnem, code, flagType = "logic", \
