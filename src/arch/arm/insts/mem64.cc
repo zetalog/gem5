@@ -208,11 +208,14 @@ MemoryEx64::generateDisassembly(Addr pc, const SymbolTable *symtab) const
 {
     std::stringstream ss;
     printMnemonic(ss, "", false);
-    printIntReg(ss, dest);
+    printIntReg(ss, dest, 32);
     ccprintf(ss, ", ");
-    printIntReg(ss, result);
+    if (bits(machInst, 31, 30) == 0x3)
+        printIntReg(ss, result, 64);
+    else
+        printIntReg(ss, result, 32);
     ccprintf(ss, ", [");
-    printIntReg(ss, base);
+    printIntReg(ss, base, 64);
     ccprintf(ss, "]");
     return ss.str();
 }
