@@ -210,11 +210,15 @@ MemoryEx64::generateDisassembly(Addr pc, const SymbolTable *symtab) const
     printMnemonic(ss, "", false);
     printIntReg(ss, dest, 32);
     ccprintf(ss, ", ");
-    if (bits(machInst, 31, 30) == 0x3)
-        printIntReg(ss, result, 64);
-    else
-        printIntReg(ss, result, 32);
-    ccprintf(ss, ", [");
+    if (result !=INTREG_X31) {
+        if (bits(machInst, 31, 30) == 0x3)
+            printIntReg(ss, result, 64);
+        else
+            printIntReg(ss, result, 32);
+        ccprintf(ss, ", [");
+    } else {
+        ccprintf(ss, "[");
+    }
     printIntReg(ss, base, 64);
     ccprintf(ss, "]");
     return ss.str();
