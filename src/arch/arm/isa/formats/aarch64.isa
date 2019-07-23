@@ -161,7 +161,10 @@ namespace Aarch64
               case 0x2:
                 return new EorXImm(machInst, rdsp, rn, imm);
               case 0x3:
-                return new AndXImmCc(machInst, rdzr, rn, imm);
+                if (rdzr == INTREG_ZERO)
+                  return new TstXImmCc(machInst, rdzr, rn, imm);
+                else
+                  return new AndXImmCc(machInst, rdzr, rn, imm);
               default:
                 M5_UNREACHABLE;
             }
@@ -1259,7 +1262,10 @@ namespace Aarch64
               case 0x5:
                 return new EonXSReg(machInst, rdzr, rn, rm, imm6, type);
               case 0x6:
-                return new AndXSRegCc(machInst, rdzr, rn, rm, imm6, type);
+                if (rdzr == INTREG_ZERO)
+                  return new TstXSRegCc(machInst, rdzr, rn, rm, imm6, type);
+                else
+                  return new AndXSRegCc(machInst, rdzr, rn, rm, imm6, type);
               case 0x7:
                 return new BicXSRegCc(machInst, rdzr, rn, rm, imm6, type);
               default:
