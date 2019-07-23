@@ -157,7 +157,8 @@ BranchImmImmReg64::generateDisassembly(
     std::string label;
     printMnemonic(ss, "", false);
     printIntReg(ss, op1);
-    ccprintf(ss, ", #%#x, ", imm1);
+    int bit_pos = (bits(machInst, 31, 31) << 5) +  bits(machInst, 23, 19);
+    ccprintf(ss, ", #%d, ", bit_pos);
     if (symtab && symtab->findLabel(pc + imm2, label))
         ccprintf(ss, "%s", label);
     else
