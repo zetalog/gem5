@@ -70,7 +70,7 @@ Memory64::startDisassembly(std::ostream &os) const
         printIntReg(os, dest);
     }
     ccprintf(os, ", [");
-    printIntReg(os, base);
+    printIntReg(os, base, 64); // Rn width is fixed to 64 for LDRx/STRx
 }
 
 void
@@ -150,6 +150,38 @@ MemoryPostIndex64::generateDisassembly(Addr pc, const SymbolTable *symtab) const
         ccprintf(ss, "], #%d", imm);
     ccprintf(ss, "]");
     return ss.str();
+}
+
+void
+MemoryReg64::printExtendOperand(bool firstOperand, std::ostream &os,
+                                IntRegIndex rm, ArmExtendType type,
+                                int64_t shiftAmt) const
+{
+    if (!firstOperand)
+        ccprintf(os, ", ");
+    printIntReg(os, rm, 64);
+    if (type == UXTX && shiftAmt == 0)
+        return;
+    switch (type) {
+      case UXTB: ccprintf(os, ", UXTB");
+        break;
+      case UXTH: ccprintf(os, ", UXTH");
+        break;
+      case UXTW: ccprintf(os, ", UXTW");
+        break;
+      case UXTX: ccprintf(os, ", LSL");
+        break;
+      case SXTB: ccprintf(os, ", SXTB");
+        break;
+      case SXTH: ccprintf(os, ", SXTH");
+        break;
+      case SXTW: ccprintf(os, ", SXTW");
+        break;
+      case SXTX: ccprintf(os, ", SXTW");
+        break;
+    }
+    if (type == UXTX || shiftAmt)
+        ccprintf(os, " #%d", shiftAmt);
 }
 
 std::string
