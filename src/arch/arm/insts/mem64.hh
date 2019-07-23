@@ -218,6 +218,10 @@ class MemoryReg64 : public Memory64
 
     std::string generateDisassembly(
             Addr pc, const SymbolTable *symtab) const override;
+
+    void printExtendOperand(bool firstOperand, std::ostream &os,
+                            IntRegIndex rm, ArmExtendType type,
+                            int64_t shiftAmt) const;
 };
 
 class MemoryRaw64 : public Memory64
