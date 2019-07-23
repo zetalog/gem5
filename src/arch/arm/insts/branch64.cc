@@ -138,7 +138,8 @@ BranchImmImmReg64::generateDisassembly(
     std::stringstream ss;
     printMnemonic(ss, "", false);
     printIntReg(ss, op1);
-    ccprintf(ss, ", #%#x, ", imm1);
+    int bit_pos = (bits(machInst, 31, 31) << 5) +  bits(machInst, 23, 19);
+    ccprintf(ss, ", #%d, ", bit_pos);
     printTarget(ss, pc + imm2, symtab);
     return ss.str();
 }
