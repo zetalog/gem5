@@ -148,7 +148,8 @@ MemoryPostIndex64::generateDisassembly(Addr pc, const SymbolTable *symtab) const
     startDisassembly(ss);
     if (imm)
         ccprintf(ss, "], #%d", imm);
-    ccprintf(ss, "]");
+    else
+        ccprintf(ss, "]");
     return ss.str();
 }
 
