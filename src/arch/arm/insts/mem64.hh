@@ -141,6 +141,8 @@ class MemoryImm64 : public Memory64
 
     std::string generateDisassembly(
             Addr pc, const SymbolTable *symtab) const override;
+
+    void startDisassemblyIndex(std::ostream &os) const;
 };
 
 class MemoryDImm64 : public MemoryImm64
