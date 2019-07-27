@@ -98,6 +98,22 @@ MemoryImm64::generateDisassembly(Addr pc, const SymbolTable *symtab) const
     return ss.str();
 }
 
+void
+MemoryImm64::startDisassemblyIndex(std::ostream &os) const
+{
+    int rd_width;
+    uint32_t size = bits(machInst, 31, 30);
+    uint32_t opc = bits(machInst, 23, 22);
+    if (size == 0x3 || opc == 0x2)
+        rd_width = 64;
+    else
+        rd_width = 32;
+    printMnemonic(os, "", false);
+    printIntReg(os, dest, rd_width);
+    ccprintf(os, ", [");
+    printIntReg(os, base, 64);
+}
+
 std::string
 MemoryDImm64::generateDisassembly(Addr pc, const SymbolTable *symtab) const
 {
@@ -136,7 +152,7 @@ std::string
 MemoryPreIndex64::generateDisassembly(Addr pc, const SymbolTable *symtab) const
 {
     std::stringstream ss;
-    startDisassembly(ss);
+    startDisassemblyIndex(ss);
     ccprintf(ss, ", #%d]!", imm);
     return ss.str();
 }
@@ -145,10 +161,8 @@ std::string
 MemoryPostIndex64::generateDisassembly(Addr pc, const SymbolTable *symtab) const
 {
     std::stringstream ss;
-    startDisassembly(ss);
-    if (imm)
-        ccprintf(ss, "], #%d", imm);
-    ccprintf(ss, "]");
+    startDisassemblyIndex(ss);
+    ccprintf(ss, "], #%d", imm);
     return ss.str();
 }
 
