@@ -221,7 +221,7 @@ class MemoryReg64 : public Memory64
 
     void printExtendOperand(bool firstOperand, std::ostream &os,
                             IntRegIndex rm, ArmExtendType type,
-                            int64_t shiftAmt) const;
+                            int64_t shiftAmt, int rm_width) const;
 };
 
 class MemoryRaw64 : public Memory64
