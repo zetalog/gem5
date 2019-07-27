@@ -189,8 +189,14 @@ std::string
 MemoryLiteral64::generateDisassembly(Addr pc, const SymbolTable *symtab) const
 {
     std::stringstream ss;
+    int rd_width;
+    uint32_t size = bits(machInst, 31, 30);
+    if (size == 0)
+        rd_width = 32;
+    else
+        rd_width = 64;
     printMnemonic(ss, "", false);
-    printIntReg(ss, dest);
+    printIntReg(ss, dest, rd_width);
     ccprintf(ss, ", #%d", pc + imm);
     return ss.str();
 }
