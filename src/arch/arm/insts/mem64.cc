@@ -91,7 +91,17 @@ std::string
 MemoryImm64::generateDisassembly(Addr pc, const SymbolTable *symtab) const
 {
     std::stringstream ss;
-    startDisassembly(ss);
+    int rd_width;
+    uint32_t size = bits(machInst, 31, 30);
+    uint32_t opc = bits(machInst, 23, 22);
+    if (size == 0x3 || opc == 0x2)
+       rd_width = 64;
+    else
+       rd_width = 32;
+    printMnemonic(ss, "", false);
+    printIntReg(ss, dest, rd_width);
+    ccprintf(ss, ", [");
+    printIntReg(ss, base, 64);
     if (imm)
         ccprintf(ss, ", #%d", imm);
     ccprintf(ss, "]");
