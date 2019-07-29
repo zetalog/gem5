@@ -152,12 +152,70 @@ MemoryPostIndex64::generateDisassembly(Addr pc, const SymbolTable *symtab) const
     return ss.str();
 }
 
+void
+MemoryReg64::printExtendOperand(bool firstOperand, std::ostream &os,
+                                IntRegIndex rm, ArmExtendType type,
+                                int64_t shiftAmt, int rm_width) const
+{
+    if (!firstOperand)
+        ccprintf(os, ", ");
+    printIntReg(os, rm, rm_width);
+    if (type == UXTX && shiftAmt == 0)
+        return;
+    switch (type) {
+      case UXTB: ccprintf(os, ", UXTB");
+        break;
+      case UXTH: ccprintf(os, ", UXTH");
+        break;
+      case UXTW: ccprintf(os, ", UXTW");
+        break;
+      case UXTX: ccprintf(os, ", LSL");
+        break;
+      case SXTB: ccprintf(os, ", SXTB");
+        break;
+      case SXTH: ccprintf(os, ", SXTH");
+        break;
+      case SXTW: ccprintf(os, ", SXTW");
+        break;
+      case SXTX: ccprintf(os, ", SXTX");
+        break;
+    }
+    if (type == UXTX || shiftAmt)
+        ccprintf(os, " #%d", shiftAmt);
+}
+
 std::string
 MemoryReg64::generateDisassembly(Addr pc, const SymbolTable *symtab) const
 {
     std::stringstream ss;
-    startDisassembly(ss);
-    printExtendOperand(false, ss, offset, type, shiftAmt);
+    int rd_width;
+    int rm_width;
+    uint32_t size = bits(machInst, 31, 30);
+    uint32_t opc = bits(machInst, 23, 22);
+    uint32_t option = bits(machInst, 15, 13);
+    if (option == 0x3)
+        if (opc == 0x2)
+            rd_width = 64;
+        else
+            rd_width = 32;
+    else
+        if (opc == 0x3)
+            rd_width = 32;
+        else if (opc == 0x1 && size != 0x3)
+            rd_width = 32;
+        else if (opc == 0x0 && size != 0x3)
+            rd_width = 32;
+        else
+            rd_width = 64;
+    if (option & 0x1)
+       rm_width = 64;
+    else
+       rm_width = 32;
+    printMnemonic(ss, "", false);
+    printIntReg(ss, dest, rd_width);
+    ccprintf(ss, ", [");
+    printIntReg(ss, base, 64);
+    printExtendOperand(false, ss, offset, type, shiftAmt, rm_width);
     ccprintf(ss, "]");
     return ss.str();
 }
