@@ -287,6 +287,19 @@ RegImmImmOp::generateDisassembly(Addr pc, const SymbolTable *symtab) const
 }
 
 std::string
+RegImmImmMovkOp::generateDisassembly(Addr pc, const SymbolTable *symtab) const
+{
+    std::stringstream ss;
+    printMnemonic(ss);
+    printIntReg(ss, dest);
+    if (imm2 != 0)
+        ccprintf(ss, ", #%d, LSL #%d", imm1, imm2);
+    else
+        ccprintf(ss, ", #%d", imm1);
+    return ss.str();
+}
+
+std::string
 RegImmImmMovzOp::generateDisassembly(Addr pc, const SymbolTable *symtab) const
 {
     std::stringstream ss;
