@@ -57,8 +57,14 @@ let {{
     exec_output += BasicExecute.subst(movkIop)
 
     movnCode = 'Dest64 = ~(((uint64_t)imm1) << imm2);'
-    movnIop = InstObjParams("movn", "Movn", "RegImmImmOp", movnCode, [])
+    movnIop = InstObjParams("movn", "Movn", "RegImmImmMovnOp", movnCode, [])
     header_output += RegImmImmOpDeclare.subst(movnIop)
     decoder_output += RegImmImmOpConstructor.subst(movnIop)
     exec_output += BasicExecute.subst(movnIop)
+
+    movnmovIop = InstObjParams("mov", "MovnMov", "RegImmImmMovnMovOp",
+                               movnCode, [])
+    header_output += RegImmImmOpDeclare.subst(movnmovIop)
+    decoder_output += RegImmImmOpConstructor.subst(movnmovIop)
+    exec_output += BasicExecute.subst(movnmovIop)
 }};
