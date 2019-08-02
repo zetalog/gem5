@@ -51,7 +51,7 @@ let {{
     exec_output += BasicExecute.subst(movzmovIop)
 
     movkCode = 'Dest64 = insertBits(Dest64, imm2 + 15, imm2, imm1);'
-    movkIop = InstObjParams("movk", "Movk", "RegImmImmOp", movkCode, [])
+    movkIop = InstObjParams("movk", "Movk", "RegImmImmMovkOp", movkCode, [])
     header_output += RegImmImmOpDeclare.subst(movkIop)
     decoder_output += RegImmImmOpConstructor.subst(movkIop)
     exec_output += BasicExecute.subst(movkIop)
