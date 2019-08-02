@@ -166,9 +166,14 @@ namespace Aarch64
             IntRegIndex rdzr = makeZero(rd);
             uint32_t imm16 = bits(machInst, 20, 5);
             uint32_t hw = bits(machInst, 22, 21);
+            uint32_t sf = bits(machInst, 31);
             switch (opc) {
               case 0x0:
-                return new Movn(machInst, rdzr, imm16, hw * 16);
+                if (((sf == 1) && (!((imm16 == 0) && (hw != 0)))) || ((sf == 0)
+                    && (!((imm16 == 0) && (hw != 0))) && (imm16 != 0xFFFF)))
+                  return new MovnMov(machInst, rdzr, imm16, hw * 16);
+                else
+                  return new Movn(machInst, rdzr, imm16, hw * 16);
               case 0x1:
                 return new Unknown64(machInst);
               case 0x2:
