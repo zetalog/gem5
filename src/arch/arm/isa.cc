@@ -2194,10 +2194,9 @@ ISA::dumpMiscReg(BaseCPU *cpu, ThreadContext *tc, RegIndex idx)
     ArmStaticInstEncoder encoder(emi);
 
     cpu->simpoint_asm << "  ldr   x29, =";
-    cpu->simpoint_asm << "#0x" << std::hex << readMiscReg(idx, tc) << std::dec;
+    cpu->simpoint_asm << "0x" << std::hex << readMiscReg(idx, tc) << std::dec;
     cpu->simpoint_asm << std::endl;
-    cpu->simpoint_asm << "  msr   ";
-    encoder.encodeMiscReg(cpu->simpoint_asm, idx);
+    cpu->simpoint_asm << "  msr nzcv";
     cpu->simpoint_asm << ", x29" << std::endl;
 }
 
