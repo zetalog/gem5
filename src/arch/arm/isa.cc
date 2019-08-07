@@ -2173,10 +2173,10 @@ ISA::dumpIntReg(BaseCPU *cpu, ThreadContext *tc, RegIndex idx, RegVal val)
         cpu->simpoint_asm << "  ldr   ";
     encoder.encodeIntReg(cpu->simpoint_asm, idx);
     if (val < 0x10000)
-        cpu->simpoint_asm << ", ";
+        cpu->simpoint_asm << ", #";
     else
         cpu->simpoint_asm << ", =";
-    cpu->simpoint_asm << "#0x" <<  std::hex << val << std::dec;
+    cpu->simpoint_asm << "0x" <<  std::hex << val << std::dec;
     cpu->simpoint_asm << std::endl;
 }
 
@@ -2271,10 +2271,10 @@ void
 ISA::dumpStacked(BaseCPU *cpu, ThreadContext *tc, uint64_t data)
 {
     if (data < 0x10000)
-        cpu->simpoint_asm << "  mov   x29, ";
+        cpu->simpoint_asm << "  mov   x29, #";
     else
         cpu->simpoint_asm << "  ldr   x29, =";
-    cpu->simpoint_asm << "#0x" << std::hex << data << std::dec;
+    cpu->simpoint_asm << "0x" << std::hex << data << std::dec;
     cpu->simpoint_asm << std::endl;
     cpu->simpoint_asm << "  str   x29, [sp, #8]" << std::endl;
 }
@@ -2415,16 +2415,16 @@ ISA::dumpContextMems(BaseCPU *cpu, ThreadContext *tc,
             return;
 
         if (data < 0x10000)
-            cpu->simpoint_asm << "  mov   x29, ";
+            cpu->simpoint_asm << "  mov   x29, #";
         else
             cpu->simpoint_asm << "  ldr   x29, =";
-        cpu->simpoint_asm << "#0x" << std::hex << data << std::dec;
+        cpu->simpoint_asm << "0x" << std::hex << data << std::dec;
         cpu->simpoint_asm << std::endl;
         if (addr < 0x10000)
-            cpu->simpoint_asm << "  mov   x30, ";
+            cpu->simpoint_asm << "  mov   x30, #";
         else
             cpu->simpoint_asm << "  ldr   x30, =";
-        cpu->simpoint_asm << "#0x" << std::hex << addr << std::dec;
+        cpu->simpoint_asm << "0x" << std::hex << addr << std::dec;
         cpu->simpoint_asm << std::endl;
         switch (size) {
         case 1:
