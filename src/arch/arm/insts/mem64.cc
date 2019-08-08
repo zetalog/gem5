@@ -74,6 +74,19 @@ Memory64::startDisassembly(std::ostream &os) const
 }
 
 void
+Memory64::startDisassembly(std::ostream &os, int rd_width) const
+{
+    printMnemonic(os, "", false);
+    if (isDataPrefetch()||isInstPrefetch()){
+        printPFflags(os, dest);
+    }else{
+        printIntReg(os, dest, rd_width);
+    }
+    ccprintf(os, ", [");
+    printIntReg(os, base, 64);
+}
+
+void
 Memory64::setExcAcRel(bool exclusive, bool acrel)
 {
     if (exclusive)
@@ -91,7 +104,10 @@ std::string
 MemoryImm64::generateDisassembly(Addr pc, const SymbolTable *symtab) const
 {
     std::stringstream ss;
-    startDisassembly(ss);
+    uint32_t size = bits(machInst, 31, 30);
+    uint32_t opc = bits(machInst, 23, 22);
+    int rd_width = (size == 0x3 || opc == 0x2) ? 64 : 32;
+    startDisassembly(ss, rd_width);
     if (imm)
         ccprintf(ss, ", #%d", imm);
     ccprintf(ss, "]");
@@ -136,7 +152,10 @@ std::string
 MemoryPreIndex64::generateDisassembly(Addr pc, const SymbolTable *symtab) const
 {
     std::stringstream ss;
-    startDisassembly(ss);
+    uint32_t size = bits(machInst, 31, 30);
+    uint32_t opc = bits(machInst, 23, 22);
+    int rd_width = (size == 0x3 || opc == 0x2) ? 64 : 32;
+    startDisassembly(ss, rd_width);
     ccprintf(ss, ", #%d]!", imm);
     return ss.str();
 }
@@ -145,19 +164,57 @@ std::string
 MemoryPostIndex64::generateDisassembly(Addr pc, const SymbolTable *symtab) const
 {
     std::stringstream ss;
-    startDisassembly(ss);
-    if (imm)
-        ccprintf(ss, "], #%d", imm);
-    ccprintf(ss, "]");
+    uint32_t size = bits(machInst, 31, 30);
+    uint32_t opc = bits(machInst, 23, 22);
+    int rd_width = (size == 0x3 || opc == 0x2) ? 64 : 32;
+    startDisassembly(ss, rd_width);
+    ccprintf(ss, "], #%d", imm);
     return ss.str();
+}
+
+void
+MemoryReg64::printExtendOperand(bool firstOperand, std::ostream &os,
+                                IntRegIndex rm, ArmExtendType type,
+                                int64_t shiftAmt, int rm_width) const
+{
+    if (!firstOperand)
+        ccprintf(os, ", ");
+    printIntReg(os, rm, rm_width);
+    if (type == UXTX && shiftAmt == 0)
+        return;
+    switch (type) {
+      case UXTB: ccprintf(os, ", UXTB");
+        break;
+      case UXTH: ccprintf(os, ", UXTH");
+        break;
+      case UXTW: ccprintf(os, ", UXTW");
+        break;
+      case UXTX: ccprintf(os, ", LSL");
+        break;
+      case SXTB: ccprintf(os, ", SXTB");
+        break;
+      case SXTH: ccprintf(os, ", SXTH");
+        break;
+      case SXTW: ccprintf(os, ", SXTW");
+        break;
+      case SXTX: ccprintf(os, ", SXTX");
+        break;
+    }
+    if (type == UXTX || shiftAmt)
+        ccprintf(os, " #%d", shiftAmt);
 }
 
 std::string
 MemoryReg64::generateDisassembly(Addr pc, const SymbolTable *symtab) const
 {
     std::stringstream ss;
-    startDisassembly(ss);
-    printExtendOperand(false, ss, offset, type, shiftAmt);
+    uint32_t size = bits(machInst, 31, 30);
+    uint32_t opc = bits(machInst, 23, 22);
+    uint32_t option = bits(machInst, 15, 13);
+    int rd_width = (size == 0x3 || opc == 0x2) ? 64 : 32;
+    int rm_width = (option & 0x1) ? 64 : 32;
+    startDisassembly(ss, rd_width);
+    printExtendOperand(false, ss, offset, type, shiftAmt, rm_width);
     ccprintf(ss, "]");
     return ss.str();
 }
@@ -189,8 +246,14 @@ std::string
 MemoryLiteral64::generateDisassembly(Addr pc, const SymbolTable *symtab) const
 {
     std::stringstream ss;
+    uint32_t opc = bits(machInst, 31, 30);
+    int rd_width = (opc == 0x0) ? 32 : 64;
     printMnemonic(ss, "", false);
-    printIntReg(ss, dest);
+    if (isDataPrefetch()||isInstPrefetch()){
+        printPFflags(ss, dest);
+    }else{
+        printIntReg(ss, dest, rd_width);
+    }
     ccprintf(ss, ", #%d", pc + imm);
     return ss.str();
 }
