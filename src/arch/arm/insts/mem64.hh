@@ -264,6 +264,8 @@ class MemoryLiteral64 : public Memory64
 
     std::string generateDisassembly(
             Addr pc, const SymbolTable *symtab) const override;
+
+    bool markTarget(Addr pc, Addr &target, SymbolTable *symtab);
 };
 }
 
