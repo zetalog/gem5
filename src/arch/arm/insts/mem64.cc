@@ -118,12 +118,14 @@ std::string
 MemoryDImm64::generateDisassembly(Addr pc, const SymbolTable *symtab) const
 {
     std::stringstream ss;
+    uint32_t size = bits(machInst, 31, 30);
+    int rd_width = (size == 0x3) ? 64 : 32;
     printMnemonic(ss, "", false);
-    printIntReg(ss, dest);
+    printIntReg(ss, dest, rd_width);
     ccprintf(ss, ", ");
-    printIntReg(ss, dest2);
+    printIntReg(ss, dest2, rd_width);
     ccprintf(ss, ", [");
-    printIntReg(ss, base);
+    printIntReg(ss, base, 64);
     if (imm)
         ccprintf(ss, ", #%d", imm);
     ccprintf(ss, "]");
@@ -134,14 +136,18 @@ std::string
 MemoryDImmEx64::generateDisassembly(Addr pc, const SymbolTable *symtab) const
 {
     std::stringstream ss;
+    uint32_t size = bits(machInst, 31, 30);
+    int rd_width = (size == 0x3) ? 64 : 32;
     printMnemonic(ss, "", false);
-    printIntReg(ss, result);
+    if (result != INTREG_X31) {
+        printIntReg(ss, result, 32);
+        ccprintf(ss, ", ");
+    }
+    printIntReg(ss, dest, rd_width);
     ccprintf(ss, ", ");
-    printIntReg(ss, dest);
-    ccprintf(ss, ", ");
-    printIntReg(ss, dest2);
+    printIntReg(ss, dest2, rd_width);
     ccprintf(ss, ", [");
-    printIntReg(ss, base);
+    printIntReg(ss, base, 64);
     if (imm)
         ccprintf(ss, ", #%d", imm);
     ccprintf(ss, "]");
@@ -223,7 +229,12 @@ std::string
 MemoryRaw64::generateDisassembly(Addr pc, const SymbolTable *symtab) const
 {
     std::stringstream ss;
-    startDisassembly(ss);
+    uint32_t size = bits(machInst, 31, 30);
+    int rd_width = (size == 0x3) ? 64 : 32;
+    printMnemonic(ss, "", false);
+    printIntReg(ss, dest, rd_width);
+    ccprintf(ss, ", [");
+    printIntReg(ss, base, 64);
     ccprintf(ss, "]");
     return ss.str();
 }
@@ -232,12 +243,16 @@ std::string
 MemoryEx64::generateDisassembly(Addr pc, const SymbolTable *symtab) const
 {
     std::stringstream ss;
+    uint32_t size = bits(machInst, 31, 30);
+    int rd_width = (size == 0x3) ? 64 : 32;
     printMnemonic(ss, "", false);
-    printIntReg(ss, dest);
-    ccprintf(ss, ", ");
-    printIntReg(ss, result);
+    if (result != INTREG_X31) {
+        printIntReg(ss, result, 32);
+        ccprintf(ss, ", ");
+    }
+    printIntReg(ss, dest, rd_width);
     ccprintf(ss, ", [");
-    printIntReg(ss, base);
+    printIntReg(ss, base, 64);
     ccprintf(ss, "]");
     return ss.str();
 }
