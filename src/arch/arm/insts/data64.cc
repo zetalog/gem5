@@ -52,6 +52,30 @@ DataXImmOp::generateDisassembly(Addr pc, const SymbolTable *symtab) const
 }
 
 std::string
+DataXImmAdrpOp::generateDisassembly(Addr pc, const SymbolTable *symtab) const
+{
+    std::stringstream ss;
+    Addr target = pc + imm;
+    Addr symbolAddr;
+    std::string symbol;
+    printMnemonic(ss);
+    printIntReg(ss, dest);
+    if (symtab && symtab->findNearestSymbol(target, symbol, symbolAddr)) {
+        if ((symbolAddr & 0xFFFFF000) == (target & 0xFFFFF000))
+            ccprintf(ss, ", %s", symbol);
+        else if ((symbolAddr & 0xFFFFF000) < (target & 0xFFFFF000))
+            ccprintf(ss, ", %s+0x%x", symbol,
+                     ((target & 0xFFFFF000) - (symbolAddr & 0xFFFFF000)));
+        else
+            ccprintf(ss, ", %s-0x%x", symbol,
+                     ((symbolAddr & 0xFFFFF000) - (target & 0xFFFFF000)));
+    } else {
+       ccprintf(ss, ", <undefined symbol for address #0x%x>", target);
+    }
+    return ss.str();
+}
+
+std::string
 DataXImmOnlyOp::generateDisassembly(Addr pc, const SymbolTable *symtab) const
 {
     std::stringstream ss;
