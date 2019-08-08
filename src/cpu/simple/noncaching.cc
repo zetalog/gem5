@@ -84,6 +84,7 @@ NonCachingSimpleCPU::dumpSimulatedContexts()
         thread->getIsaPtr()->dumpCallContexts(this, thread,
                                               item.addr, item.size, item.value);
     }
+    thread->getIsaPtr()->dumpContextRegsLate(this, thread);
 }
 
 void
@@ -195,4 +196,27 @@ realDump:
         i++;
     }
     thread->getIsaPtr()->dumpCallReturn(this);
+}
+
+static bool
+readMem(BaseCPU *cpu, Addr addr, uint8_t *data,
+        unsigned size, Request::Flags flags)
+{
+    Fault fault = NoFault;
+    NonCachingSimpleCPU *this_cpu = dynamic_cast<NonCachingSimpleCPU *>(cpu);
+
+    if (!this_cpu)
+        return false;
+    fault = this_cpu->readMem(addr, data, size, flags);
+    return fault == NoFault ? true : false;
+}
+
+void
+NonCachingSimpleCPU::dumpSimulatedRegisters()
+{
+    SimpleExecContext &t_info = *threadInfo[curThread];
+    SimpleThread* thread = t_info.thread;
+
+    std::cout << "Dumping registers..." << std::endl;
+    thread->getIsaPtr()->dumpContextRegsEarly(this, thread, ::readMem);
 }

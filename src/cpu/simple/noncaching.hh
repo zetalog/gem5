@@ -55,6 +55,7 @@ class NonCachingSimpleCPU : public AtomicSimpleCPU
     void verifyMemoryMode() const override;
 
     void dumpSimulatedSymbols();
+    void dumpSimulatedRegisters();
     void dumpSimulatedContexts();
 
   protected:
