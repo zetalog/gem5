@@ -81,8 +81,10 @@ readMemAtomic(XC *xc, Trace::InstRecord *traceData, Addr addr, MemT &mem,
     Fault fault = xc->readMem(addr, (uint8_t *)&mem, sizeof(MemT), flags);
     if (fault == NoFault) {
         mem = TheISA::gtoh(mem);
-        if (traceData)
+        if (traceData) {
             traceData->setData(mem);
+            traceData->setMemData((uint8_t *)&mem);
+        }
     }
     return fault;
 }
