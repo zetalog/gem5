@@ -989,19 +989,23 @@ again:
 }
 
 bool
-BaseCPU::markAccessed(OpClass opcls, Addr addr, Addr size, uint64_t value)
+BaseCPU::markAccessed(OpClass opcls, Addr addr, unsigned size, uint8_t *data)
 {
     int i;
 
+    if (data == NULL)
+        return false;
+#if 0
     // TODO: Try to skip stack accesses at an early stage
     if (size > 8) {
         std::cout << "WARN: Invalid access size ";
         std::cout << std::dec << size << "." << std::endl;
         size = 8;
     }
+#endif
     for (i = 0; i < size; i++) {
         Addr byteAddr = addr + i;
-        uint8_t byteData = (uint8_t)(value >> (i * 8));
+        uint8_t byteData = data[i];
 
         if (!find_mem_data(byteAddr, reads) &&
             !find_mem_data(byteAddr, writes)) {

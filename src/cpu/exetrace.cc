@@ -76,7 +76,7 @@ Trace::ExeTracerRecord::traceInst(const StaticInstPtr &inst, bool ran)
     OpClass opcls = inst->opClass();
 
     if (opcls == MemReadOp || opcls == MemWriteOp) {
-        cpu->markAccessed(opcls, addr, size, data.as_int);
+        cpu->markAccessed(opcls, addr, memSize, memData);
     }
 
     if (!Debug::ExecUser || !Debug::ExecKernel) {

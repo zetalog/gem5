@@ -83,6 +83,9 @@ class InstRecord
     Addr addr; ///< The address that was accessed
     Addr size; ///< The size of the memory request
     unsigned flags; ///< The flags that were assigned to the request.
+    unsigned memSize;
+    static const int sizeMax = 16;
+    uint8_t memData[sizeMax];
 
     /** @} */
 
@@ -211,6 +214,16 @@ class InstRecord
         data.as_pred = new ::VecPredRegContainer<
             TheISA::VecPredRegSizeBits, TheISA::VecPredRegHasPackedRepr>(d);
         data_status = DataVecPred;
+    }
+
+    void setMemData(uint8_t *mem_ptr, unsigned int mem_size)
+    {
+        if (mem_ptr == NULL || mem_size > sizeMax) {
+            return;
+            memSize = 0;
+        }
+        memcpy(memData, mem_ptr, mem_size);
+        memSize = mem_size;
     }
 
     void setFetchSeq(InstSeqNum seq)
