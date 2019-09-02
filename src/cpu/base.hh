@@ -251,6 +251,7 @@ class BaseCPU : public ClockedObject
     bool find_mem_data(Addr addr, std::list<MemData> &data_array);
     void insert_mem_data(Addr addr, uint8_t value,
                          std::list<MemData> &data_array);
+    virtual void dumpSimulatedRegisters() {};
     virtual void dumpSimulatedSymbols() {};
     virtual void dumpSimulatedMemories() {};
 
