@@ -709,6 +709,12 @@ namespace ArmISA
 
         void startup(ThreadContext *tc);
 
+        // Dump register context
+        void dumpGenRegStore(BaseCPU *cpu, ThreadContext *tc);
+        void dumpGenRegLoad(BaseCPU *cpu, ThreadContext *tc);
+        void dumpMiscRegStore(BaseCPU *cpu, ThreadContext *tc);
+        void dumpMiscRegLoad(BaseCPU *cpu, ThreadContext *tc);
+        void dumpContextRegsEarly(BaseCPU *cpu, ThreadContext *tc);
         // Dump contexts of a sliced call
         void dumpCallContexts(BaseCPU *cpu, ThreadContext *tc,
                               Addr addr, Addr size, uint64_t value);

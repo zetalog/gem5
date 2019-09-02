@@ -79,11 +79,20 @@ NonCachingSimpleCPU::dumpSimulatedContexts()
     SimpleExecContext &t_info = *threadInfo[curThread];
     SimpleThread* thread = t_info.thread;
 
+    if (!simpoint_asm.is_open())
+        return;
+
     std::cout << "Dumping contexts..." << std::endl;
+    simpoint_asm << "/* Restore memory reads */" << std::endl;
     for (auto &item : reads) {
         thread->getIsaPtr()->dumpCallContexts(this, thread,
                                               item.addr, item.size, item.value);
     }
+    simpoint_asm  << std::endl;
+
+    simpoint_asm << "/* Jump to the 1st insctruction of SimPoint */" \
+                 << std::endl;
+    simpoint_asm << "  b     simpoint_start" << std::endl;
 }
 
 void
@@ -100,7 +109,7 @@ NonCachingSimpleCPU::dumpSimulatedSymbols()
     TheISA::Decoder *decoder = &(thread->decoder);
     SymbolTable *symtab = debugSymbolTable;
 
-    int size = symbols.size();
+    int symbol_cnt = 0;
     int i;
     std::string sym_str;
     std::string lab_str;
@@ -112,7 +121,8 @@ NonCachingSimpleCPU::dumpSimulatedSymbols()
 
 realDump:
     i = 0;
-    while (i < size) {
+    symbol_cnt = symbols.size();
+    while (i < symbol_cnt) {
         if (!symtab->findNearestSymbol(symbols[i], sym_str,
                                        funcStart, funcEnd))
             return;
@@ -161,11 +171,10 @@ realDump:
                     disassembly = instPtr->disassemble(addr, symtab, true);
                     simpoint_asm << disassembly << std::endl;
                 } else {
-                    if (instPtr->markTarget(addr, target, symtab) &&
-                        symtab->findNearestSymbol(target, sym_str, addr) &&
-                        addr == target) {
+                    bool ret1 = instPtr->markTarget(addr, target, symtab);
+                    bool ret2 = symtab->findLabel(target, sym_str);
+                    if (ret1 && ret2)
                         markBranched(target);
-                    }
                 }
             }
             if (fault != NoFault || !t_info.stayAtPC)
@@ -180,19 +189,40 @@ realDump:
         dumpSimulatedContexts();
         goto realDump;
     }
+    simpoint_asm << std::endl;
 
-    size = branches.size();
-    i = 0;
-    while (i < size) {
-        if (!symtab->findNearestSymbol(branches[i], sym_str,
-                                       funcStart, funcEnd))
-            return;
-        if (funcStart != branches[i])
-            return;
-        if (i == 0)
-            simpoint_asm << std::endl;
+    simpoint_asm << "/* Customized Exit */" << std::endl;
+    simpoint_asm << "exit:" << std::endl;
+    simpoint_asm << "   nop" << std::endl;
+    simpoint_asm << "   b exit" << std::endl;
+    simpoint_asm << std::endl;
+
+    simpoint_asm << "/* Branch targets not executed */" << std::endl;
+    for (auto b : branches) {
+        if (!symtab->findNearestSymbol(b, sym_str, funcStart, funcEnd))
+            continue;
+        if (funcStart != b)
+            continue;
+        for (auto s : symbols) {
+            if (s == b) {
+                simpoint_asm << "// ";
+                break;
+            }
+        }
+        if (sym_str == "exit")
+            simpoint_asm << "// ";
         simpoint_asm << sym_str << ":" << std::endl;
-        i++;
     }
+    simpoint_asm << std::endl;
     thread->getIsaPtr()->dumpCallReturn(this);
+}
+
+void
+NonCachingSimpleCPU::dumpSimulatedRegisters()
+{
+    SimpleExecContext &t_info = *threadInfo[curThread];
+    SimpleThread* thread = t_info.thread;
+
+    std::cout << "Dumping registers..." << std::endl;
+    thread->getIsaPtr()->dumpContextRegsEarly(this, thread);
 }
