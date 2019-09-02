@@ -911,6 +911,7 @@ BaseCPU::markStarted(Addr address)
 {
     if (!_simpointStarted) {
         simpoint_entry = address;
+        dumpSimulatedRegisters();
         _simpointStarted = true;
     }
 
