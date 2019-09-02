@@ -79,8 +79,8 @@ NonCachingSimpleCPU::dumpSimulatedContexts()
     SimpleExecContext &t_info = *threadInfo[curThread];
     SimpleThread* thread = t_info.thread;
 
-    thread->getIsaPtr()->dumpSimpointInit(this);
     std::cout << "Dumping contexts..." << std::endl;
+    thread->getIsaPtr()->dumpContextRegsLate(this, thread);
     thread->getIsaPtr()->dumpSimpointStart(this);
 }
 
@@ -190,6 +190,8 @@ realDump:
     }
     simpoint_asm << std::endl;
 
+    thread->getIsaPtr()->dumpSimpointStop(this);
+
     simpoint_asm << "/* Branch targets not executed */" << std::endl;
     for (auto b : branches) {
         if (!symtab->findNearestSymbol(b, sym_str, funcStart, funcEnd))
@@ -208,4 +210,15 @@ realDump:
     }
     simpoint_asm << std::endl;
     thread->getIsaPtr()->dumpSimpointExit(this);
+}
+
+void
+NonCachingSimpleCPU::dumpSimulatedRegisters()
+{
+    SimpleExecContext &t_info = *threadInfo[curThread];
+    SimpleThread* thread = t_info.thread;
+
+    std::cout << "Dumping registers..." << std::endl;
+    thread->getIsaPtr()->dumpContextRegsEarly(this, thread);
+    thread->getIsaPtr()->dumpSimpointInit(this);
 }
