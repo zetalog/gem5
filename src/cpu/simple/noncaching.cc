@@ -216,6 +216,19 @@ realDump:
     thread->getIsaPtr()->dumpSimpointExit(this);
 }
 
+static bool
+readMem(BaseCPU *cpu, Addr addr, uint8_t *data,
+        unsigned size, Request::Flags flags)
+{
+    Fault fault = NoFault;
+    NonCachingSimpleCPU *this_cpu = dynamic_cast<NonCachingSimpleCPU *>(cpu);
+
+    if (!this_cpu)
+        return false;
+    fault = this_cpu->readMem(addr, data, size, flags);
+    return fault == NoFault ? true : false;
+}
+
 void
 NonCachingSimpleCPU::dumpSimulatedRegisters()
 {
@@ -224,5 +237,7 @@ NonCachingSimpleCPU::dumpSimulatedRegisters()
 
     std::cout << "Dumping registers..." << std::endl;
     thread->getIsaPtr()->dumpContextRegsEarly(this, thread);
+    thread->getIsaPtr()->dumpStackStore(this, thread, ::readMem);
     thread->getIsaPtr()->dumpSimpointInit(this);
+    thread->getIsaPtr()->dumpStackLoad(this, thread);
 }

@@ -108,6 +108,14 @@ namespace ArmISA
 
         bool afterStartup;
 
+        /** Simpoint saved */
+        uint64_t saved_lr;
+        int saved_fp;
+        int stack_depth;
+        std::stack<uint64_t> ss;
+        std::stack<int> fp_idx_queue;
+        std::stack<int> lr_idx_queue;
+
         /** MiscReg metadata **/
         struct MiscRegLUTEntry {
             uint32_t lower;  // Lower half mapped to this register
@@ -714,6 +722,18 @@ namespace ArmISA
         void dumpGenRegLoad(BaseCPU *cpu, ThreadContext *tc);
         void dumpMiscRegStore(BaseCPU *cpu, ThreadContext *tc);
         void dumpMiscRegLoad(BaseCPU *cpu, ThreadContext *tc);
+        uint64_t readMem(BaseCPU *cpu, ThreadContext *tc, Addr addr,
+            bool (*__readMem)(BaseCPU *cpu, Addr, uint8_t *, unsigned,
+                              Request::Flags flags));
+        void dumpLR(BaseCPU *cpu, ThreadContext *tc, Addr lr);
+        void dumpStackedFP(BaseCPU *cpu, ThreadContext *tc);
+        void dumpStackedLR(BaseCPU *cpu, ThreadContext *tc, Addr lr);
+        void dumpStacked(BaseCPU *cpu, ThreadContext *tc, uint64_t data);
+        void dumpMiscReg(BaseCPU *cpu, ThreadContext *tc, RegIndex idx);
+        void dumpStackStore(BaseCPU *cpu, ThreadContext *tc,
+            bool (*__readMem)(BaseCPU *cpu, Addr, uint8_t *, unsigned,
+                              Request::Flags));
+        void dumpStackLoad(BaseCPU *cpu, ThreadContext *tc);
         void dumpContextRegsEarly(BaseCPU *cpu, ThreadContext *tc);
         void dumpContextRegsLate(BaseCPU *cpu, ThreadContext *tc);
         // Dump contexts of a sliced call
