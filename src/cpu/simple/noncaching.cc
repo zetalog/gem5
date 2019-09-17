@@ -39,6 +39,8 @@
 
 #include "cpu/simple/noncaching.hh"
 
+using namespace TheISA;
+
 NonCachingSimpleCPU::NonCachingSimpleCPU(NonCachingSimpleCPUParams *p)
     : AtomicSimpleCPU(p)
 {

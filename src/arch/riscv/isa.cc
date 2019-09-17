@@ -34,8 +34,6 @@
 #include <set>
 #include <sstream>
 
-#include "arch/riscv/registers.hh"
-#include "base/bitfield.hh"
 #include "cpu/base.hh"
 #include "debug/RiscvMisc.hh"
 #include "params/RiscvISA.hh"
