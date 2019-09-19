@@ -56,6 +56,7 @@ class NonCachingSimpleCPU : public AtomicSimpleCPU
 
     void dumpSimulatedSymbols();
     void dumpSimulatedRegisters();
+    void dumpSimulatedPages();
     void dumpSimulatedContexts();
 
   protected:
