@@ -757,6 +757,14 @@ namespace ArmISA
         void dumpStackLoad(BaseCPU *cpu, ThreadContext *tc);
         void dumpContextRegsEarly(BaseCPU *cpu, ThreadContext *tc);
         void dumpContextRegsLate(BaseCPU *cpu, ThreadContext *tc);
+        void dumpMemPagePrefix(BaseCPU *cpu, int page_cnt);
+        void dumpMemPageBegin(BaseCPU *cpu, Addr addr);
+        void dumpMemPageEnd(BaseCPU *cpu, Addr addr);
+        void dumpMemZeroBytes(BaseCPU *cpu, Addr size);
+        void dumpMemOneByte(BaseCPU *cpu, uint8_t data);
+        void dumpPteGenBegin(BaseCPU *cpu, int page_cnt);
+        void dumpPteGen(BaseCPU *cpu, Addr virt_addr, Addr phys_offset);
+        void dumpPteGenEnd(BaseCPU *cpu);
         // Dump init of simpoint
         void dumpSimpointInit(BaseCPU *cpu);
         // Dump exit of simpoint
