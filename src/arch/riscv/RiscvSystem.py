@@ -45,6 +45,7 @@ class RiscvSystem(System):
 class BareMetalRiscvSystem(RiscvSystem):
     type = 'BareMetalRiscvSystem'
     cxx_header = 'arch/riscv/bare_metal/system.hh'
-    bootloader = Param.String("File, that contains the bootloader code")
+    bootloader = Param.String('sdfirm_riscv64', \
+            "File, that contains the bootloader code")
 
     bare_metal = True

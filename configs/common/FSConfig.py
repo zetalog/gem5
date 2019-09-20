@@ -52,6 +52,7 @@ os_types = { 'alpha' : [ 'linux' ],
              'mips'  : [ 'linux' ],
              'sparc' : [ 'linux' ],
              'x86'   : [ 'linux' ],
+             'riscv' : [ 'linux' ],
              'arm'   : [ 'linux',
                          'android-gingerbread',
                          'android-ics',
@@ -425,6 +426,25 @@ def makeLinuxMipsSystem(mem_mode, mdesc=None, cmdline=None):
     if not cmdline:
         cmdline = 'root=/dev/hda1 console=ttyS0'
     self.boot_osflags = fillInCmdline(mdesc, cmdline)
+
+    self.system_port = self.membus.slave
+
+    return self
+
+def makeRiscvSystem(mem_mode, mdesc=None, cmdline=None):
+    self = BareMetalRiscvSystem()
+    if not mdesc:
+        # generic system
+        mdesc = SysConfig()
+
+    self.membus = MemBus()
+    self.mem_mode = mem_mode
+    self.mem_ranges = [AddrRange('4GB')]
+
+    #self.iobus = IOXBar()
+    #self.bridge = Bridge(delay='50ns')
+    #self.bridge.master = self.iobus.slave
+    #self.bridge.slave = self.membus.master
 
     self.system_port = self.membus.slave
 
