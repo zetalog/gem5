@@ -40,6 +40,8 @@
 #include "cpu/simple/noncaching.hh"
 #include "base/mem_page.hh"
 
+using namespace TheISA;
+
 NonCachingSimpleCPU::NonCachingSimpleCPU(NonCachingSimpleCPUParams *p)
     : AtomicSimpleCPU(p)
 {

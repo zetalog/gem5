@@ -42,6 +42,7 @@
 #include <string>
 
 #include "arch/riscv/registers.hh"
+#include "arch/riscv/tlb.hh"
 #include "arch/riscv/types.hh"
 #include "base/bitfield.hh"
 #include "base/logging.hh"
@@ -50,6 +51,7 @@
 
 struct RiscvISAParams;
 class ThreadContext;
+class BaseCPU;
 class Checkpoint;
 class EventManager;
 
@@ -89,6 +91,37 @@ class ISA : public SimObject
     int flattenMiscIndex(int reg) const { return reg; }
 
     void startup(ThreadContext *tc) {}
+
+    // Dump register context
+    void dumpGenRegStore(BaseCPU *cpu, ThreadContext *tc) {}
+    void dumpGenRegLoad(BaseCPU *cpu, ThreadContext *tc) {}
+    void dumpMiscRegStore(BaseCPU *cpu, ThreadContext *tc) {}
+    void dumpMiscRegLoad(BaseCPU *cpu, ThreadContext *tc) {}
+    void dumpContextRegsEarly(BaseCPU *cpu, ThreadContext *tc) {}
+    void dumpContextRegsLate(BaseCPU *cpu, ThreadContext *tc) {}
+    void dumpStackStore(BaseCPU *cpu, ThreadContext *tc,
+        bool (*__readMem)(BaseCPU *cpu, Addr, uint8_t *, unsigned,
+                          Request::Flags)) {}
+    void dumpStackLoad(BaseCPU *cpu, ThreadContext *tc) {}
+    void dumpMemPagePrefix(BaseCPU *cpu, int page_cnt) {}
+    void dumpMemPageBegin(BaseCPU *cpu, Addr addr) {}
+    void dumpMemPageEnd(BaseCPU *cpu, Addr addr) {}
+    void dumpMemZeroBytes(BaseCPU *cpu, Addr size) {}
+    void dumpMemOneByte(BaseCPU *cpu, uint8_t data) {}
+    void dumpPteGenBegin(BaseCPU *cpu, int page_cnt) {}
+    void dumpPteGen(BaseCPU *cpu, Addr virt_addr, Addr phys_offset) {}
+    void dumpPteGenEnd(BaseCPU *cpu) {}
+    void dumpMemBegin(BaseCPU *cpu) {}
+    void dumpMemU64(BaseCPU *cpu, Addr addr, uint64_t value) {}
+    void dumpMemEnd(BaseCPU *cpu) {}
+    // Dump init of simpoint
+    void dumpSimpointInit(BaseCPU *cpu) {}
+    // Dump exit of simpoint
+    void dumpSimpointExit(BaseCPU *cpu) {}
+    // Dump start of simpoint
+    void dumpSimpointStart(BaseCPU *cpu) {}
+    // Dump stop of simpoint
+    void dumpSimpointStop(BaseCPU *cpu) {}
 
     /// Explicitly import the otherwise hidden startup
     using SimObject::startup;
