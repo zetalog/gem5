@@ -38,6 +38,7 @@
  */
 
 #include "cpu/simple/noncaching.hh"
+#include "base/mem_page.hh"
 
 using namespace TheISA;
 
@@ -75,6 +76,92 @@ NonCachingSimpleCPUParams::create()
     return new NonCachingSimpleCPU(this);
 }
 
+void
+NonCachingSimpleCPU::dumpSimulatedPages()
+{
+    std::set<MemPage> page_set;
+    Addr page_addr;
+    Addr page_offset;
+    uint8_t *page_data_buf = NULL;
+    std::set<MemPage>::iterator page_it;
+    std::pair<std::set<MemPage>::iterator, bool> ret;
+
+    /* Merge memory reads and writes into a page set.
+       If one position in page is read more than once, then the value of the
+       first read is recored. */
+    for (auto &item : reads) {
+        page_addr = item.addr & MEM_PAGE_MASK;
+        page_offset = item.addr & (~MEM_PAGE_MASK);
+        MemPage curr_page(page_addr);
+        ret = page_set.insert(curr_page);
+        page_data_buf = (uint8_t *)(*ret.first).data;
+        for (int i = 0; i < item.size; i++) {
+            uint8_t byte_value = *((uint8_t *)&item.value + i);
+            if (page_data_buf[page_offset + i] == 0)
+                page_data_buf[page_offset + i] = byte_value;
+        }
+    }
+    for (auto &item : writes) {
+        page_addr = item.addr & MEM_PAGE_MASK;
+        MemPage curr_page(page_addr);
+        page_set.insert(curr_page);
+    }
+
+    /* Dump pages in the order of address growth. */
+    SimpleExecContext &t_info = *threadInfo[curThread];
+    SimpleThread* thread = t_info.thread;
+    std::set<MemPage>::iterator it;
+    thread->getIsaPtr()->dumpMemPagePrefix(this, page_set.size());
+    for (it = page_set.begin(); it != page_set.end(); ++it) {
+        page_addr = (*it).addr;
+        page_data_buf = (uint8_t *)(*it).data;
+        thread->getIsaPtr()->dumpMemPageBegin(this, page_addr);
+        int i = 0;
+        int zero_byte_cnt = 0;
+        do {
+            if (page_data_buf[i] != 0) {
+                zero_byte_cnt = 0;
+                thread->getIsaPtr()->dumpMemOneByte(this, page_data_buf[i]);
+                i++;
+                continue;
+            }
+            zero_byte_cnt = 1;
+            while (i + zero_byte_cnt < MEM_PAGE_SIZE) {
+                if (page_data_buf[i + zero_byte_cnt] == 0)
+                    zero_byte_cnt++;
+                else
+                    break;
+            }
+            thread->getIsaPtr()->dumpMemZeroBytes(this, zero_byte_cnt);
+            i += zero_byte_cnt;
+        } while (i < MEM_PAGE_SIZE);
+        thread->getIsaPtr()->dumpMemPageEnd(this, page_addr);
+    }
+
+    /* Dump one fucntion for generating page table entry for all pages. */
+    Addr phys_offset = 0;
+    thread->getIsaPtr()->dumpPteGenBegin(this, page_set.size());
+    for (it = page_set.begin(); it != page_set.end(); ++it) {
+        page_addr = (*it).addr;
+        thread->getIsaPtr()->dumpPteGen(this, page_addr, phys_offset);
+                phys_offset += MEM_PAGE_SIZE;
+    }
+    thread->getIsaPtr()->dumpPteGenEnd(this);
+
+    /* Dump one function for restoring heap memory pages. */
+    thread->getIsaPtr()->dumpMemBegin(this);
+    for (it = page_set.begin(); it != page_set.end(); ++it) {
+        page_addr = (*it).addr;
+                for (Addr offset = 0; offset < MEM_PAGE_SIZE; offset += 8) {
+            uint64_t value = *(uint64_t*)((uint8_t *)(*it).data + offset);
+            if (value == 0) {
+                continue;
+            }
+            thread->getIsaPtr()->dumpMemU64(this, page_addr + offset, value);
+        }
+    }
+    thread->getIsaPtr()->dumpMemEnd(this);
+}
 void
 NonCachingSimpleCPU::dumpSimulatedContexts()
 {
@@ -212,6 +299,7 @@ realDump:
     }
     simpoint_asm << std::endl;
     thread->getIsaPtr()->dumpSimpointExit(this);
+    dumpSimulatedPages();
 }
 
 static bool
