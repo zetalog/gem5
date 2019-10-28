@@ -413,9 +413,13 @@ decode QUADRANT default Unknown::unknown() {
                 0x0: addi({{
                     Rd_sd = Rs1_sd + imm;
                 }});
+            }
+            format IShiftOp {
                 0x1: slli({{
                     Rd = Rs1 << SHAMT6;
                 }});
+            }
+            format IOp {
                 0x2: slti({{
                     Rd = (Rs1_sd < imm) ? 1 : 0;
                 }});
@@ -425,6 +429,8 @@ decode QUADRANT default Unknown::unknown() {
                 0x4: xori({{
                     Rd = Rs1 ^ imm;
                 }}, uint64_t);
+            }
+            format IShiftOp {
                 0x5: decode SRTYPE {
                     0x0: srli({{
                         Rd = Rs1 >> SHAMT6;
@@ -433,6 +439,8 @@ decode QUADRANT default Unknown::unknown() {
                         Rd_sd = Rs1_sd >> SHAMT6;
                     }});
                 }
+            }
+            format IOp {
                 0x6: ori({{
                     Rd = Rs1 | imm;
                 }}, uint64_t);
@@ -451,6 +459,8 @@ decode QUADRANT default Unknown::unknown() {
                 0x0: addiw({{
                     Rd_sd = Rs1_sw + imm;
                 }}, int32_t);
+            }
+            format IShiftOp {
                 0x1: slliw({{
                     Rd_sd = Rs1_sw << SHAMT5;
                 }});
