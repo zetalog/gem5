@@ -90,6 +90,38 @@ def template ImmExecute {{
     }
 }};
 
+def template UImmExecute {{
+    Fault
+    %(class_name)s::execute(
+        ExecContext *xc, Trace::InstRecord *traceData) const
+    {
+        Fault fault = NoFault;
+
+        %(op_decl)s;
+        %(op_rd)s;
+        if (fault == NoFault) {
+            %(code)s;
+            if (fault == NoFault) {
+                %(op_wb)s;
+            }
+        }
+        return fault;
+    }
+
+    std::string
+    %(class_name)s::generateDisassembly(Addr pc,
+            const SymbolTable *symtab) const
+    {
+        std::vector<RegId> indices = {%(regs)s};
+        std::stringstream ss;
+        ss << mnemonic << ' ';
+        for (const RegId& idx: indices)
+            ss << registerName(idx) << ", ";
+        ss << (((uint64_t)imm >> 12) & 0xFFFFF);
+        return ss.str();
+    }
+}};
+
 def template BranchDeclare {{
     //
     // Static instruction class for "%(mnemonic)s".
@@ -357,7 +389,7 @@ def format UOp(code, *opt_flags) {{
     header_output = ImmDeclare.subst(iop)
     decoder_output = ImmConstructor.subst(iop)
     decode_block = BasicDecode.subst(iop)
-    exec_output = ImmExecute.subst(iop)
+    exec_output = UImmExecute.subst(iop)
 }};
 
 def format JOp(code, *opt_flags) {{
