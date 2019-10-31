@@ -1413,6 +1413,10 @@ opClassRE = re.compile(r'.*Op|No_OpClass')
 class InstObjParams(object):
     def __init__(self, parser, mnem, class_name, base_class = '',
                  snippets = {}, opt_args = []):
+        # Fix instruction mnemonic for RISCV
+        if parser.isa_name == "RiscvISA":
+            mnem = mnem.replace("_", ".")
+
         self.mnemonic = mnem
         self.class_name = class_name
         self.base_class = base_class
