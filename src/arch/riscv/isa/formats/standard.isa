@@ -122,6 +122,43 @@ def template UImmExecute {{
     }
 }};
 
+def template CILuiExecute {{
+    Fault
+    %(class_name)s::execute(
+        ExecContext *xc, Trace::InstRecord *traceData) const
+    {
+        Fault fault = NoFault;
+
+        %(op_decl)s;
+        %(op_rd)s;
+        if (fault == NoFault) {
+            %(code)s;
+            if (fault == NoFault) {
+                %(op_wb)s;
+            }
+        }
+        return fault;
+    }
+
+    std::string
+    %(class_name)s::generateDisassembly(Addr pc,
+            const SymbolTable *symtab) const
+    {
+        std::vector<RegId> indices = {%(regs)s};
+        std::stringstream ss;
+        // To be compatible with GCC, the immediate is sign-extended to 20-bit.
+        uint16_t inst_compressed = (uint16_t)bits(machInst, 15, 0);
+        uint32_t imm = (inst_compressed >> 2) & 0x001F;
+        if ((inst_compressed >> 12) & 0x0001)
+            imm |= 0xFFFE0;
+        ss << mnemonic << ' ';
+        for (const RegId& idx: indices)
+            ss << registerName(idx) << ", ";
+        ss << imm;
+        return ss.str();
+    }
+}};
+
 def template BranchDeclare {{
     //
     // Static instruction class for "%(mnemonic)s".

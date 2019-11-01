@@ -137,8 +137,9 @@ decode QUADRANT default Unknown::unknown() {
                 }
                 Rc1_sd = imm;
             }});
+        }
             0x3: decode RC1 {
-                0x2: c_addi16sp({{
+                0x2: CIOp::c_addi16sp({{
                     imm = CIMM5<4:4> << 4 |
                           CIMM5<0:0> << 5 |
                           CIMM5<3:3> << 6 |
@@ -152,7 +153,7 @@ decode QUADRANT default Unknown::unknown() {
                     }
                     sp_sd = sp_sd + imm;
                 }});
-                default: c_lui({{
+                default: CILuiOp::c_lui({{
                     imm = CIMM5 << 12;
                     if (CIMM1 > 0)
                         imm |= ~((uint64_t)0x1FFFF);
@@ -168,7 +169,6 @@ decode QUADRANT default Unknown::unknown() {
                     Rc1_sd = imm;
                 }});
             }
-        }
         0x4: decode CFUNCT2HIGH {
             format CIOp {
                 0x0: c_srli({{
