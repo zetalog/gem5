@@ -63,8 +63,19 @@ string LoadReserved::generateDisassembly(Addr pc,
     const SymbolTable *symtab) const
 {
     stringstream ss;
-    ss << mnemonic << ' ' << registerName(_destRegIdx[0]) << ", ("
-            << registerName(_srcRegIdx[0]) << ')';
+    uint8_t aq = bits(machInst, 26);
+    uint8_t rl = bits(machInst, 25);
+    uint8_t rs1 = bits(machInst, 19, 15);
+    uint8_t rd = bits(machInst, 11, 7);
+    ss << mnemonic;
+    if (aq || rl)
+        ss << '.';
+    if (aq)
+        ss << "aq";
+    if (rl)
+        ss << "rl";
+    ss << ' ' << registerName(RegId(IntRegClass, rd)) << ", ("
+            << registerName(RegId(IntRegClass, rs1)) << ')';
     return ss.str();
 }
 
@@ -82,9 +93,21 @@ string StoreCond::generateDisassembly(Addr pc,
     const SymbolTable *symtab) const
 {
     stringstream ss;
-    ss << mnemonic << ' ' << registerName(_destRegIdx[0]) << ", "
-            << registerName(_srcRegIdx[1]) << ", ("
-            << registerName(_srcRegIdx[0]) << ')';
+    uint8_t aq = bits(machInst, 26);
+    uint8_t rl = bits(machInst, 25);
+    uint8_t rs2 = bits(machInst, 24, 20);
+    uint8_t rs1 = bits(machInst, 19, 15);
+    uint8_t rd = bits(machInst, 11, 7);
+    ss << mnemonic;
+    if (aq || rl)
+        ss << '.';
+    if (aq)
+        ss << "aq";
+    if (rl)
+        ss << "rl";
+    ss << ' ' << registerName(RegId(IntRegClass, rd)) << ", "
+            << registerName(RegId(IntRegClass, rs2)) << ", ("
+            << registerName(RegId(IntRegClass, rs1)) << ')';
     return ss.str();
 }
 
@@ -103,9 +126,21 @@ string AtomicMemOp::generateDisassembly(Addr pc,
     const SymbolTable *symtab) const
 {
     stringstream ss;
-    ss << mnemonic << ' ' << registerName(_destRegIdx[0]) << ", "
-            << registerName(_srcRegIdx[1]) << ", ("
-            << registerName(_srcRegIdx[0]) << ')';
+    uint8_t aq = bits(machInst, 26);
+    uint8_t rl = bits(machInst, 25);
+    uint8_t rs2 = bits(machInst, 24, 20);
+    uint8_t rs1 = bits(machInst, 19, 15);
+    uint8_t rd = bits(machInst, 11, 7);
+    ss << mnemonic;
+    if (aq || rl)
+        ss << '.';
+    if (aq)
+        ss << "aq";
+    if (rl)
+        ss << "rl";
+    ss << ' ' << registerName(RegId(IntRegClass, rd)) << ", "
+            << registerName(RegId(IntRegClass, rs2)) << ", ("
+            << registerName(RegId(IntRegClass, rs1)) << ')';
     return ss.str();
 }
 
