@@ -2384,10 +2384,14 @@ ISA::dumpStackStore(BaseCPU *cpu, ThreadContext *tc,
             ptr += 8;
             i += 8;
         }
-        fp_idx_queue.push(i);
         fpVal = readMem(cpu, tc, (Addr)fp, __readMem);
-                if ((fpVal & 0xFFFFFFFFFFFFFFF0) == 0)
-                        break;
+        /* FP should be aligned to 16 bytes */
+        if (fpVal & 0xF) {
+            std::cout << "Warning: Invalid FP = 0x"
+                      << std::hex << fpVal << std::dec << std::endl;
+            break;
+        }
+        fp_idx_queue.push(i);
         ss.push(fpVal);
         i += 8;
         std::cout << "FP:";
