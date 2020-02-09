@@ -107,7 +107,10 @@ namespace Aarch64
               case 0x0:
                 return new AddXImm(machInst, rdsp, rnsp, imm);
               case 0x1:
-                return new AddXImmCc(machInst, rdzr, rnsp, imm);
+                if (rdzr == INTREG_ZERO)
+                  return new CmnXImmCc(machInst, rdzr, rnsp, imm);
+                else
+                  return new AddXImmCc(machInst, rdzr, rnsp, imm);
               case 0x2:
                 return new SubXImm(machInst, rdsp, rnsp, imm);
               case 0x3:
