@@ -126,6 +126,7 @@ class Memory64 : public MightBeMicro64
     }
 
     void startDisassembly(std::ostream &os) const;
+    void startDisassembly(std::ostream &os, int rd_width) const;
 
     unsigned memAccessFlags;
 
@@ -221,6 +222,10 @@ class MemoryReg64 : public Memory64
 
     std::string generateDisassembly(
             Addr pc, const SymbolTable *symtab) const override;
+
+    void printExtendOperand(bool firstOperand, std::ostream &os,
+                            IntRegIndex rm, ArmExtendType type,
+                            int64_t shiftAmt, int rm_width) const;
 };
 
 class MemoryRaw64 : public Memory64
