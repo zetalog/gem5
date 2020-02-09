@@ -239,6 +239,40 @@ MacroMemOp::MacroMemOp(const char *mnem, ExtMachInst machInst,
     }
 }
 
+std::string
+PairMemOp::generateDisassembly(Addr pc, const SymbolTable *symtab) const
+{
+    std::stringstream ss;
+    printMnemonic(ss, "", false);
+    printIntReg(ss, _rt,_size*8);
+    ccprintf(ss, ", ");
+    printIntReg(ss, _rt2,_size*8);
+    ccprintf(ss, ", [");
+    printIntReg(ss, _rn,8*8);
+
+    if (_writeback) {
+        if (_post) {
+            ccprintf(ss, "]");
+            if (_imm)
+                ccprintf(ss, ", #%d", _imm);
+        } else {
+            if (_imm != 0) {
+                ccprintf(ss, ", #%d", _imm);
+                ccprintf(ss, "]!");
+            } else {
+                ccprintf(ss, "]");
+            }
+        }
+    } else {
+        if (!_post) {
+            if (_imm != 0)
+                ccprintf(ss, ", #%d", _imm);
+            ccprintf(ss, "]");
+        }
+    }
+    return ss.str();
+}
+
 PairMemOp::PairMemOp(const char *mnem, ExtMachInst machInst, OpClass __opClass,
                      uint32_t size, bool fp, bool load, bool noAlloc,
                      bool signExt, bool exclusive, bool acrel,
@@ -260,6 +294,13 @@ PairMemOp::PairMemOp(const char *mnem, ExtMachInst machInst, OpClass __opClass,
     StaticInstPtr *uop = microOps;
 
     rn = makeSP(rn);
+    _rn = rn;
+    _rt = rt ;
+    _rt2 = rt2;
+    _writeback = writeback;
+    _post = post;
+    _imm = imm;
+    _size = size;
 
     if (!post) {
         *uop++ = new MicroAddXiSpAlignUop(machInst, INTREG_UREG0, rn,
