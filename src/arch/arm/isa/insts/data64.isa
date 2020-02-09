@@ -146,6 +146,7 @@ let {{
     buildDataInst("eor", "Dest64 = Op164 ^ secOp;", buildCc = False)
     buildXSRegDataInst("eon", "Dest64 = Op164 ^ ~secOp;", buildCc = False)
     buildDataInst("cmp", "Dest64 = resTemp = Op164 - secOp;", "sub")
+    buildDataInst("neg", "Dest64 = resTemp = Op164 - secOp;", "sub")
     buildDataInst("sub", "Dest64 = resTemp = Op164 - secOp;", "sub")
     buildDataInst("add", "Dest64 = resTemp = Op164 + secOp;", "add")
     buildXSRegDataInst("adc",
