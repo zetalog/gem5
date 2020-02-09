@@ -52,6 +52,14 @@ DataXImmOp::generateDisassembly(Addr pc, const SymbolTable *symtab) const
 }
 
 std::string
+DataXImmAdrpOp::generateDisassembly(Addr pc, const SymbolTable *symtab) const
+{
+    std::stringstream ss;
+    ccprintf(ss, "  .inst  0x%08x", (uint32_t)bits(machInst, 31, 0));
+    return ss.str();
+}
+
+std::string
 DataXImmOnlyOp::generateDisassembly(Addr pc, const SymbolTable *symtab) const
 {
     std::stringstream ss;
