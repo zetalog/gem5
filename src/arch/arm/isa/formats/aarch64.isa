@@ -172,7 +172,10 @@ namespace Aarch64
               case 0x1:
                 return new Unknown64(machInst);
               case 0x2:
-                return new Movz(machInst, rdzr, imm16, hw * 16);
+                if (!((imm16 == 0) && (hw != 0)))
+                  return new MovzMov(machInst, rdzr, imm16, hw * 16);
+                else
+                  return new Movz(machInst, rdzr, imm16, hw * 16);
               case 0x3:
                 return new Movk(machInst, rdzr, imm16, hw * 16);
               default:

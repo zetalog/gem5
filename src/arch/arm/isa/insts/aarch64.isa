@@ -39,10 +39,16 @@
 
 let {{
     movzCode = 'Dest64 = ((uint64_t)imm1) << imm2;'
-    movzIop = InstObjParams("movz", "Movz", "RegImmImmOp", movzCode, [])
+    movzIop = InstObjParams("movz", "Movz", "RegImmImmMovzOp", movzCode, [])
     header_output += RegImmImmOpDeclare.subst(movzIop)
     decoder_output += RegImmImmOpConstructor.subst(movzIop)
     exec_output += BasicExecute.subst(movzIop)
+
+    movzmovIop = InstObjParams("mov", "MovzMov", "RegImmImmMovzMovOp",
+                               movzCode, [])
+    header_output += RegImmImmOpDeclare.subst(movzmovIop)
+    decoder_output += RegImmImmOpConstructor.subst(movzmovIop)
+    exec_output += BasicExecute.subst(movzmovIop)
 
     movkCode = 'Dest64 = insertBits(Dest64, imm2 + 15, imm2, imm1);'
     movkIop = InstObjParams("movk", "Movk", "RegImmImmOp", movkCode, [])
