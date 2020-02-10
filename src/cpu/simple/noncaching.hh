@@ -52,6 +52,10 @@ class NonCachingSimpleCPU : public AtomicSimpleCPU
 
     void verifyMemoryMode() const override;
 
+    void disasmSimPoint();
+    void traceSimPointContexts();
+    void disasmSimPointContexts();
+
   protected:
     Tick sendPacket(MasterPort &port, const PacketPtr &pkt) override;
 };

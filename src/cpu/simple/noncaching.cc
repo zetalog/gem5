@@ -37,6 +37,8 @@
 
 #include "cpu/simple/noncaching.hh"
 
+using namespace TheISA;
+
 NonCachingSimpleCPU::NonCachingSimpleCPU(NonCachingSimpleCPUParams *p)
     : AtomicSimpleCPU(p)
 {
@@ -69,4 +71,165 @@ NonCachingSimpleCPUParams::create()
     if (!FullSystem && workload.size() != 1)
         fatal("only one workload allowed");
     return new NonCachingSimpleCPU(this);
+}
+
+void
+NonCachingSimpleCPU::disasmSimPointContexts()
+{
+    SimpleExecContext &t_info = *threadInfo[curThread];
+    SimpleThread* thread = t_info.thread;
+
+    std::cout << "Dumping contexts during disassembling..." << std::endl;
+    thread->getIsaPtr()->dumpSimPointStart(this, thread);
+}
+
+void
+NonCachingSimpleCPU::disasmSimPoint()
+{
+    if (!Loader::debugSymbolTable || !simpoint_asm.is_open())
+        return;
+
+    if (curThread != 0)
+        fatal("Execution disassembly currently does not support SMT");
+
+    SimpleExecContext &t_info = *threadInfo[curThread];
+    SimpleThread* thread = t_info.thread;
+    TheISA::Decoder *decoder = &(thread->decoder);
+    Loader::SymbolTable *symtab = Loader::debugSymbolTable;
+
+    int symbol_cnt = 0;
+    int i;
+    std::string sym_str;
+    std::string lab_str;
+    Addr funcStart, funcEnd, addr, target;
+    StaticInstPtr instPtr;
+    std::string disassembly;
+    TheISA::PCState pc;
+    bool doDumpSymbols = false;
+    bool doDumpNormal = false;
+
+realDump:
+    i = 0;
+    symbol_cnt = symbols.size();
+    while (i < symbol_cnt) {
+        if (!symtab->findNearestSymbol(symbols[i], sym_str,
+                                       funcStart, funcEnd))
+            return;
+        if (funcStart != symbols[i])
+            return;
+
+        if (doDumpSymbols) {
+            if (sym_str == "exit")
+                doDumpNormal = false;
+            else
+                doDumpNormal = true;
+        }
+        if (doDumpNormal)
+            simpoint_asm << std::endl << sym_str << ":" << std::endl;
+        addr = funcStart;
+        pc = thread->pcState();
+        pc.set(addr);
+        thread->pcState(pc);
+        t_info.fetchOffset = 0;
+
+        while (addr < funcEnd) {
+            if (doDumpSymbols && simpoint_entry == addr) {
+                simpoint_asm << "simpoint_start:" << std::endl;
+                if (!doDumpNormal)
+                    thread->getIsaPtr()->dumpSimPointStop(this, thread);
+            }
+            if (doDumpNormal && symtab->findTarget(addr, lab_str))
+                simpoint_asm << lab_str << ":" << std::endl;
+
+            Fault fault = NoFault;
+            ifetch_req->taskId(taskId());
+            setupFetchRequest(ifetch_req);
+            fault = thread->itb->translateAtomic(ifetch_req,
+                                                 thread->getTC(),
+                                                 BaseTLB::Execute);
+            if (fault == NoFault) {
+                Packet ifetch_pkt = Packet(ifetch_req, MemCmd::ReadReq);
+                ifetch_pkt.dataStatic(&inst);
+                sendPacket(icachePort, &ifetch_pkt);
+                //gtoh(inst);
+
+                Addr fetchPC = (addr & PCMask) + t_info.fetchOffset;
+                decoder->moreBytes(pc, fetchPC, inst);
+                instPtr = decoder->decode(pc);
+                if (instPtr) {
+                    t_info.stayAtPC = false;
+                    thread->pcState(pc);
+                } else {
+                    fatal("Fetching MicroOP?");
+                    t_info.stayAtPC = true;
+                    t_info.fetchOffset += sizeof(MachInst);
+                }
+
+                if (doDumpNormal) {
+                    disassembly = instPtr->disassemble(addr, symtab, true);
+                    simpoint_asm << disassembly << std::endl;
+                } else {
+                    bool ret1 = instPtr->markTarget(addr, target, symtab);
+                    bool ret2 = symtab->findLabel(target, sym_str);
+                    if (ret1 && ret2)
+                        markBranched(target);
+                }
+            }
+            if (fault != NoFault || !t_info.stayAtPC)
+                advancePC(fault);
+            pc = thread->pcState();
+            addr = pc.instAddr();
+        }
+        i++;
+    }
+    if (!doDumpSymbols) {
+        doDumpSymbols = true;
+        disasmSimPointContexts();
+        goto realDump;
+    }
+    simpoint_asm << std::endl;
+
+    thread->getIsaPtr()->dumpSimPointStop(this, thread);
+
+    simpoint_asm << "/* Branch targets not executed */" << std::endl;
+    for (auto b : branches) {
+        if (!symtab->findNearestSymbol(b, sym_str, funcStart, funcEnd))
+            continue;
+        if (funcStart != b)
+            continue;
+        for (auto s : symbols) {
+            if (s == b) {
+                simpoint_asm << "// ";
+                break;
+            }
+        }
+        if (sym_str == "exit")
+            continue;
+        simpoint_asm << sym_str << ":" << std::endl;
+    }
+    simpoint_asm << std::endl;
+    thread->getIsaPtr()->dumpSimPointExit(this, thread);
+}
+
+static bool
+readMem(BaseCPU *cpu, Addr addr, uint8_t *data,
+        unsigned size, Request::Flags flags)
+{
+    Fault fault = NoFault;
+    NonCachingSimpleCPU *this_cpu = dynamic_cast<NonCachingSimpleCPU *>(cpu);
+
+    if (!this_cpu)
+        return false;
+    fault = this_cpu->readMem(addr, data, size, flags);
+    return fault == NoFault ? true : false;
+}
+
+void
+NonCachingSimpleCPU::traceSimPointContexts()
+{
+    SimpleExecContext &t_info = *threadInfo[curThread];
+    SimpleThread* thread = t_info.thread;
+
+    std::cout << "Dumping contexts during execution..." << std::endl;
+    thread->getIsaPtr()->dumpSimPointInit(this, thread, ::readMem);
 }

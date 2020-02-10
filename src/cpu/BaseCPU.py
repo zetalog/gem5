@@ -169,6 +169,8 @@ class BaseCPU(ClockedObject):
         "terminate when any thread reaches this inst count")
     simpoint_start_insts = VectorParam.Counter([],
         "starting instruction counts of simpoints")
+    simpoint_disassembly_path = Param.String("",
+        "Path to save simpoint disassembly")
     progress_interval = Param.Frequency('0Hz',
         "frequency to print out the progress message")
 

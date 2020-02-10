@@ -40,8 +40,10 @@
 #ifndef __ARCH_GENERIC_ISA_HH__
 #define __ARCH_GENERIC_ISA_HH__
 
+#include "mem/request.hh"
 #include "sim/sim_object.hh"
 
+class BaseCPU;
 class ThreadContext;
 
 class BaseISA : public SimObject
@@ -53,6 +55,16 @@ class BaseISA : public SimObject
     virtual void
     takeOverFrom(ThreadContext *new_tc, ThreadContext *old_tc)
     {}
+    // Dump init of simpoint
+    virtual void dumpSimPointInit(BaseCPU *cpu, ThreadContext *tc,
+        bool (*__readMem)(BaseCPU *cpu, Addr, uint8_t *, unsigned,
+                          Request::Flags)) {};
+    // Dump exit of simpoint
+    virtual void dumpSimPointExit(BaseCPU *cpu, ThreadContext *tc) {};
+    // Dump start of simpoint
+    virtual void dumpSimPointStart(BaseCPU *cpu, ThreadContext *tc) {};
+    // Dump stop of simpoint
+    virtual void dumpSimPointStop(BaseCPU *cpu, ThreadContext *tc) {};
 };
 
 #endif // __ARCH_GENERIC_ISA_HH__

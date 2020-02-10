@@ -128,6 +128,7 @@ BaseCPU::BaseCPU(Params *p, bool is_checker)
       _dataMasterId(p->system->getMasterId(this, "data")),
       _taskId(ContextSwitchTaskId::Unknown), _pid(invldPid),
       _switchedOut(p->switched_out), _cacheLineSize(p->system->cacheLineSize()),
+      _simpointStarted(false),
       interrupts(p->interrupts), profileEvent(NULL),
       numThreads(p->numThreads), system(p->system),
       previousCycle(0), previousState(CPU_STATE_SLEEP),
@@ -180,6 +181,15 @@ BaseCPU::BaseCPU(Params *p, bool is_checker)
         for (ThreadID tid = 0; tid < numThreads; tid++)
             interrupts[tid]->setCPU(this);
     }
+    // Set up instruction log file stream
+    std::string simpoint_asm_path = p->simpoint_disassembly_path.c_str();
+    if (!simpoint_asm_path.empty()) {
+        simpoint_asm.open(simpoint_asm_path);
+        if (simpoint_asm.is_open()) {
+            std::cout << "Disassembling simpoint to ";
+            std::cout << simpoint_asm_path << "." << std::endl;
+        }
+    }
 
     if (FullSystem) {
         if (params()->profile)
@@ -204,6 +214,7 @@ BaseCPU::enableFunctionTrace()
 BaseCPU::~BaseCPU()
 {
     delete profileEvent;
+    simpoint_asm.close();
 }
 
 void
@@ -901,4 +912,23 @@ BaseCPU::markBranched(Addr address)
     };
     branches.insert(branches.begin() + i, address);
     return true;
+}
+
+bool
+BaseCPU::traceSimPoint(Addr address)
+{
+    if (!_simpointStarted) {
+        simpoint_entry = address;
+        traceSimPointContexts();
+        _simpointStarted = true;
+    }
+
+    return markExecuted(address);
+}
+
+void
+sliceSimPoint()
+{
+    std::cout << "Slicing SimPoint..." << std::endl;
+    BaseCPU::dumpSimulatedInsts();
 }
