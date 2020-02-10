@@ -119,9 +119,20 @@ StaticInst::branchTarget(ThreadContext *tc) const
     M5_DUMMY_RETURN;
 }
 
-const string &
-StaticInst::disassemble(Addr pc, const SymbolTable *symtab) const
+bool
+StaticInst::markTarget(Addr pc, Addr &target, SymbolTable *symtab)
 {
+    return false;
+}
+
+const string &
+StaticInst::disassemble(Addr pc, const SymbolTable *symtab,
+                        bool redisasm) const
+{
+    if (cachedDisassembly && redisasm) {
+        delete cachedDisassembly;
+        cachedDisassembly = 0;
+    }
     if (!cachedDisassembly)
         cachedDisassembly = new string(generateDisassembly(pc, symtab));
 
