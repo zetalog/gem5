@@ -261,6 +261,7 @@ std::string
 MemoryLiteral64::generateDisassembly(Addr pc, const SymbolTable *symtab) const
 {
     std::stringstream ss;
+    std::string label;
     uint32_t opc = bits(machInst, 31, 30);
     int rd_width = (opc == 0x0) ? 32 : 64;
     printMnemonic(ss, "", false);
@@ -269,7 +270,19 @@ MemoryLiteral64::generateDisassembly(Addr pc, const SymbolTable *symtab) const
     }else{
         printIntReg(ss, dest, rd_width);
     }
-    ccprintf(ss, ", #%d", pc + imm);
+    if (symtab && symtab->findLabel(pc + imm, label))
+        ccprintf(ss, ", %s", label);
+    else
+        ccprintf(ss, ", #%d", imm);
     return ss.str();
+}
+
+bool
+MemoryLiteral64::markTarget(Addr pc, Addr &target, SymbolTable *symtab)
+{
+    target = pc + imm;
+    if (symtab)
+        symtab->insert_target(target);
+    return false;
 }
 }
