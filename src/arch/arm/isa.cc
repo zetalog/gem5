@@ -47,6 +47,7 @@
 #include "arch/arm/system.hh"
 #include "arch/arm/tlb.hh"
 #include "arch/arm/tlbi_op.hh"
+#include "base/mem_page.hh"
 #include "cpu/base.hh"
 #include "cpu/checker/cpu.hh"
 #include "debug/Arm.hh"
@@ -2607,6 +2608,90 @@ ISA::dumpMemEnd(BaseCPU *cpu)
 }
 
 void
+ISA::dumpMemPages(BaseCPU *cpu)
+{
+    std::set<MemPage> page_set;
+    Addr page_addr;
+    Addr page_offset;
+    uint8_t *page_data_buf = NULL;
+    std::set<MemPage>::iterator page_it;
+    std::pair<std::set<MemPage>::iterator, bool> ret;
+
+    /* Merge memory reads and writes into a page set.
+       If one position in page is read more than once, then the value of the
+       first read is recored. */
+    for (auto &item : cpu->reads) {
+        page_addr = item.addr & MEM_PAGE_MASK;
+        page_offset = item.addr & (~MEM_PAGE_MASK);
+        MemPage curr_page(page_addr);
+        ret = page_set.insert(curr_page);
+        page_data_buf = (uint8_t *)(*ret.first).data;
+        for (int i = 0; i < item.size; i++) {
+            uint8_t byte_value = *((uint8_t *)&item.value + i);
+            if (page_data_buf[page_offset + i] == 0)
+                page_data_buf[page_offset + i] = byte_value;
+        }
+    }
+    for (auto &item : cpu->writes) {
+        page_addr = item.addr & MEM_PAGE_MASK;
+        MemPage curr_page(page_addr);
+        page_set.insert(curr_page);
+    }
+
+    /* Dump pages in the order of address growth. */
+    std::set<MemPage>::iterator it;
+    dumpMemPagePrefix(cpu, page_set.size());
+    for (it = page_set.begin(); it != page_set.end(); ++it) {
+        page_addr = (*it).addr;
+        page_data_buf = (uint8_t *)(*it).data;
+        dumpMemPageBegin(cpu, page_addr);
+        int i = 0;
+        int zero_byte_cnt = 0;
+        do {
+            if (page_data_buf[i] != 0) {
+                zero_byte_cnt = 0;
+                dumpMemOneByte(cpu, page_data_buf[i]);
+                i++;
+                continue;
+            }
+            zero_byte_cnt = 1;
+            while (i + zero_byte_cnt < MEM_PAGE_SIZE) {
+                if (page_data_buf[i + zero_byte_cnt] == 0)
+                    zero_byte_cnt++;
+                else
+                    break;
+            }
+            dumpMemZeroBytes(cpu, zero_byte_cnt);
+            i += zero_byte_cnt;
+        } while (i < MEM_PAGE_SIZE);
+        dumpMemPageEnd(cpu, page_addr);
+    }
+
+    /* Dump one fucntion for generating page table entry for all pages. */
+    Addr phys_offset = 0;
+    dumpPteGenBegin(cpu, page_set.size());
+    for (it = page_set.begin(); it != page_set.end(); ++it) {
+        page_addr = (*it).addr; dumpPteGen(cpu, page_addr, phys_offset);
+                phys_offset += MEM_PAGE_SIZE;
+    }
+    dumpPteGenEnd(cpu);
+
+    /* Dump one function for restoring heap memory pages. */
+    dumpMemBegin(cpu);
+    for (it = page_set.begin(); it != page_set.end(); ++it) {
+        page_addr = (*it).addr;
+                for (Addr offset = 0; offset < MEM_PAGE_SIZE; offset += 8) {
+            uint64_t value = *(uint64_t*)((uint8_t *)(*it).data + offset);
+            if (value == 0) {
+                continue;
+            }
+            dumpMemU64(cpu, page_addr + offset, value);
+        }
+    }
+    dumpMemEnd(cpu);
+}
+
+void
 ISA::dumpSimPointInit(BaseCPU *cpu, ThreadContext *tc,
     bool (*__readMem)(BaseCPU *cpu, Addr, uint8_t *, unsigned,
                       Request::Flags flags))
@@ -2646,6 +2731,7 @@ ISA::dumpSimPointExit(BaseCPU *cpu, ThreadContext *tc)
     cpu->simpoint_asm << "  b     simpoint_exit" << std::endl;
     // End Exit
     cpu->simpoint_asm << std::endl;
+    dumpMemPages(cpu);
 }
 
 void

@@ -110,6 +110,11 @@ class CPUProgressEvent : public Event
 
 class BaseCPU : public ClockedObject
 {
+  public:
+
+    std::list<MemData> reads;
+    std::list<MemData> writes;
+
   protected:
 
     /// Instruction count used for SPARC misc register
@@ -230,8 +235,6 @@ class BaseCPU : public ClockedObject
     std::vector<BaseInterrupts*> interrupts;
     std::vector<Addr> symbols;
     std::vector<Addr> branches;
-    std::list<MemData> reads;
-    std::list<MemData> writes;
 
   public:
     BaseInterrupts *

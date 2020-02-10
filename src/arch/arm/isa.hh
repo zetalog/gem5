@@ -784,6 +784,7 @@ namespace ArmISA
         void dumpMemBegin(BaseCPU *cpu);
         void dumpMemU64(BaseCPU *cpu, Addr addr, uint64_t value);
         void dumpMemEnd(BaseCPU *cpu);
+        void dumpMemPages(BaseCPU *cpu);
 
         // Dump init of simpoint
         void dumpSimPointInit(BaseCPU *cpu, ThreadContext *tc,
