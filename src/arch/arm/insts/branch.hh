@@ -59,6 +59,7 @@ class BranchImm : public PredOp
     {}
 
     std::string generateDisassembly(Addr pc, const SymbolTable *symtab) const;
+    bool markTarget(Addr pc, Addr &target, SymbolTable *symtab);
 };
 
 // Conditionally Branch to a target computed with an immediate

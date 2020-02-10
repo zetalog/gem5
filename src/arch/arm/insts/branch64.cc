@@ -74,7 +74,13 @@ BranchImmCond64::generateDisassembly(
         Addr pc, const SymbolTable *symtab) const
 {
     std::stringstream ss;
+    std::string label;
     printMnemonic(ss, "", false, true, condCode);
+    if (symtab && symtab->findLabel(pc + imm, label))
+        ccprintf(ss, "%s", label);
+    else
+        ccprintf(ss, "#%d", imm);
+    ccprintf(ss, "\t// ");
     printTarget(ss, pc + imm, symtab);
     return ss.str();
 }
@@ -84,7 +90,13 @@ BranchImm64::generateDisassembly(
         Addr pc, const SymbolTable *symtab) const
 {
     std::stringstream ss;
+    std::string label;
     printMnemonic(ss, "", false);
+    if (symtab && symtab->findLabel(pc + imm, label))
+        ccprintf(ss, "%s", label);
+    else
+        ccprintf(ss, "#%d", imm);
+    ccprintf(ss, "\t// ");
     printTarget(ss, pc + imm, symtab);
     return ss.str();
 }
@@ -156,9 +168,15 @@ BranchImmReg64::generateDisassembly(
         Addr pc, const SymbolTable *symtab) const
 {
     std::stringstream ss;
+    std::string label;
     printMnemonic(ss, "", false);
     printIntReg(ss, op1);
     ccprintf(ss, ", ");
+    if (symtab && symtab->findLabel(pc + imm, label))
+        ccprintf(ss, "%s", label);
+    else
+        ccprintf(ss, "#%d", imm);
+    ccprintf(ss, "\t// ");
     printTarget(ss, pc + imm, symtab);
     return ss.str();
 }
@@ -168,12 +186,54 @@ BranchImmImmReg64::generateDisassembly(
         Addr pc, const SymbolTable *symtab) const
 {
     std::stringstream ss;
+    std::string label;
     printMnemonic(ss, "", false);
     printIntReg(ss, op1);
     int bit_pos = (bits(machInst, 31, 31) << 5) +  bits(machInst, 23, 19);
     ccprintf(ss, ", #%d, ", bit_pos);
+    if (symtab && symtab->findLabel(pc + imm2, label))
+        ccprintf(ss, "%s", label);
+    else
+        ccprintf(ss, "#%d", imm2);
+    ccprintf(ss, "\t// ");
     printTarget(ss, pc + imm2, symtab);
     return ss.str();
+}
+
+bool
+BranchImmCond64::markTarget(Addr pc, Addr &target, SymbolTable *symtab)
+{
+    target = pc + imm;
+    if (symtab)
+        symtab->insert_target(target);
+    return true;
+}
+
+bool
+BranchImm64::markTarget(Addr pc, Addr &target, SymbolTable *symtab)
+{
+    target = pc + imm;
+    if (symtab)
+        symtab->insert_target(target);
+    return true;
+}
+
+bool
+BranchImmReg64::markTarget(Addr pc, Addr &target, SymbolTable *symtab)
+{
+    target = pc + imm;
+    if (symtab)
+        symtab->insert_target(target);
+    return true;
+}
+
+bool
+BranchImmImmReg64::markTarget(Addr pc, Addr &target, SymbolTable *symtab)
+{
+    target = pc + imm2;
+    if (symtab)
+        symtab->insert_target(target);
+    return true;
 }
 
 } // namespace ArmISA
