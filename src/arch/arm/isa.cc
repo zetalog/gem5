@@ -2491,6 +2491,13 @@ ISA::dumpSimPointInit(BaseCPU *cpu, ThreadContext *tc,
     cpu->simpoint_asm << "simpoint_entry:" << std::endl;
     // End Init
 
+    // Insert one special instruction NEGS to help debugging.
+    // Set a breakpoint using "b NegXSRegCc" in gdb of gem5, and you can
+    // quickly locate to the SimPoint entry.
+    cpu->simpoint_asm << "   // XXX Flag for locating." << std::endl;
+    cpu->simpoint_asm << "   // XXX Run b NegXSRegCc in gdb." << std::endl;
+    cpu->simpoint_asm << "   NEGS W0, W1, ASR #4" << std::endl;
+    cpu->simpoint_asm << std::endl;
     dumpStackLoad(cpu, tc);
 }
 
