@@ -110,6 +110,14 @@ namespace ArmISA
 
         bool afterStartup;
 
+        /** SimPoint saved */
+        uint64_t saved_lr;
+        int saved_fp;
+        int stack_depth;
+        std::stack<uint64_t> ss;
+        std::stack<int> fp_idx_queue;
+        std::stack<int> lr_idx_queue;
+
         /** MiscReg metadata **/
         struct MiscRegLUTEntry {
             uint32_t lower;  // Lower half mapped to this register
@@ -745,7 +753,42 @@ namespace ArmISA
 
         void startup(ThreadContext *tc);
 
-        Enums::DecoderFlavour decoderFlavour() const { return _decoderFlavour; }
+        // Helper function for heap/stack dump
+        uint64_t readMem(BaseCPU *cpu, ThreadContext *tc, Addr addr,
+            bool (*__readMem)(BaseCPU *cpu, Addr, uint8_t *, unsigned,
+                              Request::Flags flags));
+        // SimPoint Dump register context
+        void dumpGenRegStore(BaseCPU *cpu, ThreadContext *tc);
+        void dumpGenRegLoad(BaseCPU *cpu, ThreadContext *tc);
+        void dumpMiscRegStore(BaseCPU *cpu, ThreadContext *tc);
+        void dumpMiscRegLoad(BaseCPU *cpu, ThreadContext *tc);
+        void dumpLR(BaseCPU *cpu, ThreadContext *tc, Addr lr);
+        void dumpStackedFP(BaseCPU *cpu, ThreadContext *tc);
+        void dumpStackedLR(BaseCPU *cpu, ThreadContext *tc, Addr lr);
+        void dumpStacked(BaseCPU *cpu, ThreadContext *tc, uint64_t data);
+        void dumpMiscReg(BaseCPU *cpu, ThreadContext *tc, RegIndex idx);
+        void dumpStackStore(BaseCPU *cpu, ThreadContext *tc,
+            bool (*__readMem)(BaseCPU *cpu, Addr, uint8_t *, unsigned,
+                              Request::Flags));
+        void dumpStackLoad(BaseCPU *cpu, ThreadContext *tc);
+        void dumpContextRegsEarly(BaseCPU *cpu, ThreadContext *tc);
+        void dumpContextRegsLate(BaseCPU *cpu, ThreadContext *tc);
+
+        // Dump init of simpoint
+        void dumpSimPointInit(BaseCPU *cpu, ThreadContext *tc,
+            bool (*__readMem)(BaseCPU *cpu, Addr, uint8_t *, unsigned,
+                              Request::Flags));
+        // Dump exit of simpoint
+        void dumpSimPointExit(BaseCPU *cpu, ThreadContext *tc);
+        // Dump start of simpoint
+        void dumpSimPointStart(BaseCPU *cpu, ThreadContext *tc);
+        // Dump stop of simpoint
+        void dumpSimPointStop(BaseCPU *cpu, ThreadContext *tc);
+
+        Enums::DecoderFlavour decoderFlavour() const
+        {
+            return _decoderFlavour;
+        }
 
         /** Getter for haveGICv3CPUInterface */
         bool haveGICv3CpuIfc() const

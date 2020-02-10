@@ -38,6 +38,7 @@
  *          Ali Saidi
  */
 
+#include "arch/arm/insts/static_inst.hh"
 #include "arch/arm/isa.hh"
 
 #include "arch/arm/faults.hh"
@@ -2195,6 +2196,334 @@ ISA::MiscRegLUTEntryInitializer::highest(ArmSystem *const sys) const
       case EL3: mon(); break;
     }
     return *this;
+}
+
+uint64_t
+ISA::readMem(BaseCPU *cpu, ThreadContext *tc, Addr addr,
+    bool (*__readMem)(BaseCPU *cpu, Addr, uint8_t *, unsigned,
+                      Request::Flags flags))
+{
+    uint64_t val;
+    Request::Flags flags = ArmISA::TLB::AllowUnaligned |
+                           ArmISA::TLB::MustBeOne;
+
+    __readMem(cpu, addr, (uint8_t *)(&val), sizeof(uint64_t), flags);
+    return val;
+}
+
+void
+ISA::dumpGenRegStore(BaseCPU *cpu, ThreadContext *tc)
+{
+    int i = 0;
+    cpu->simpoint_asm << "/* Storage for general-purpose risgisters. */" \
+                      << std::endl;
+    cpu->simpoint_asm << ".section .rodata" << std::endl;
+    cpu->simpoint_asm << ".balign 8" << std::endl;
+    cpu->simpoint_asm << "// - Integer" << std::endl;
+    cpu->simpoint_asm << "simpoint_gen_reg_int:" << std::endl;
+    for (i = 0; i < 32; i++) {
+        RegVal val = tc->readIntReg(INTREG_X0 + i);
+        cpu->simpoint_asm << "  .dword   0x" <<  std::hex << val << std::dec \
+                          << std::endl;
+    }
+    cpu->simpoint_asm << "// TODO - Float" << std::endl;
+    cpu->simpoint_asm << std::endl;
+}
+
+void
+ISA::dumpGenRegLoad(BaseCPU *cpu, ThreadContext *tc)
+{
+    int i = 0;
+    cpu->simpoint_asm << "/* Restore general-purpose risgisters. */" \
+                      << std::endl;
+    cpu->simpoint_asm << "// - Integer" << std::endl;
+    cpu->simpoint_asm << "//  (Exclude SP, LR and FP)" << std::endl;
+    for (i = 0; i <= 28; i++)
+        cpu->simpoint_asm << "  ldr   x" <<  i << ", simpoint_gen_reg_int+" \
+                          << (i*8) << std::endl;
+    cpu->simpoint_asm << "// TODO - Float" << std::endl;
+    cpu->simpoint_asm << std::endl;
+}
+
+void
+ISA::dumpMiscRegStore(BaseCPU *cpu, ThreadContext *tc)
+{
+    RegVal val = 0;
+    cpu->simpoint_asm << "/* Storage for miscellaneous risgisters. */" \
+                      << std::endl;
+    cpu->simpoint_asm << ".section .rodata" << std::endl;
+    cpu->simpoint_asm << ".balign 8" << std::endl;
+
+    val = readMiscReg(MISCREG_CPSR, tc);
+    cpu->simpoint_asm << "simpoint_misc_reg_nzcv:" << std::endl;
+    cpu->simpoint_asm << "  .dword   0x" <<  std::hex << val << std::dec \
+                      << std::endl;
+
+    cpu->simpoint_asm << "// TODO - Others" << std::endl;
+    cpu->simpoint_asm << std::endl;
+}
+
+void
+ISA::dumpMiscRegLoad(BaseCPU *cpu, ThreadContext *tc)
+{
+    cpu->simpoint_asm << "/* Restore miscellaneous risgisters. */" \
+                      << std::endl;
+
+    cpu->simpoint_asm << "  ldr   x30, simpoint_misc_reg_nzcv" << std::endl;
+    cpu->simpoint_asm << "  msr   nzcv, x30" << std::endl;
+
+    cpu->simpoint_asm << "// TODO - Others" << std::endl;
+    cpu->simpoint_asm << std::endl;
+}
+
+void
+ISA::dumpLR(BaseCPU *cpu, ThreadContext *tc, Addr lr)
+{
+    std::string sym_str;
+    Addr addr;
+    SymbolTable *symtab = debugSymbolTable;
+
+    cpu->simpoint_asm << "/* Restore general-purpose rigister: LR */" \
+                      << std::endl;
+    if (symtab) {
+        symtab->insert_target(lr);
+        if (symtab->findNearestSymbol(lr, sym_str, addr))
+            cpu->markExecuted(addr);
+        if (symtab->findLabel(lr, sym_str))
+            cpu->simpoint_asm << "  adr   x30, " << sym_str << std::endl;
+        else
+            cpu->simpoint_asm << "  Error: unknown LR = " << lr << std::endl;
+    }
+    cpu->simpoint_asm << std::endl;
+}
+
+void
+ISA::dumpStackedFP(BaseCPU *cpu, ThreadContext *tc)
+{
+    cpu->simpoint_asm << "  mov   x9, sp" << std::endl;
+    //cpu->simpoint_asm << "  str   x29, [x9], #-8" << std::endl;
+    cpu->simpoint_asm << "  str   x29, [x9, #-8]!" << std::endl;
+    cpu->simpoint_asm << "  mov   x29, sp" << std::endl;
+    cpu->simpoint_asm << "  mov   sp, x9" << std::endl;
+}
+
+void
+ISA::dumpStackedLR(BaseCPU *cpu, ThreadContext *tc, Addr lr)
+{
+    std::string sym_str;
+    Addr addr;
+    SymbolTable *symtab = debugSymbolTable;
+
+    if (symtab) {
+        symtab->insert_target(lr);
+        if (symtab->findNearestSymbol(lr, sym_str, addr))
+            cpu->markExecuted(addr);
+        if (symtab->findLabel(lr, sym_str)) {
+            cpu->simpoint_asm << "  adr   x10, " << sym_str << std::endl;
+            cpu->simpoint_asm << "  mov   x9, sp" << std::endl;
+            //cpu->simpoint_asm << "  str   x10, [x9], #-8" << std::endl;
+            cpu->simpoint_asm << "  str   x10, [x9, #-8]!" << std::endl;
+            cpu->simpoint_asm << "  mov   sp, x9" << std::endl;
+        } else
+            cpu->simpoint_asm << "  Error: unknown LR = " << lr << std::endl;
+    }
+}
+
+void
+ISA::dumpStacked(BaseCPU *cpu, ThreadContext *tc, uint64_t data)
+{
+    cpu->simpoint_asm << "  ldr   x10, =0x" << std::hex << data << std::dec \
+                      << std::endl;
+    cpu->simpoint_asm << "  mov   x9, sp" << std::endl;
+    //cpu->simpoint_asm << "  str   x10, [x9], #-8" << std::endl;
+    cpu->simpoint_asm << "  str   x10, [x9, #-8]!" << std::endl;
+    cpu->simpoint_asm << "  mov   sp, x9" << std::endl;
+}
+
+void
+ISA::dumpStackStore(BaseCPU *cpu, ThreadContext *tc,
+    bool (*__readMem)(BaseCPU *cpu, Addr, uint8_t *, unsigned,
+                      Request::Flags flags))
+{
+    uint64_t sp, fp, lr, spTop, spBottom, fpLast, lrLast, ptr;
+    uint64_t fpVal, lrVal, val;
+    int i;
+    uint64_t reg_x9, reg_x10;
+
+    // Save special registers, PC is not saved as the dumped symbols
+    // will be linked into the new binary that is executed using the
+    // new link addresses.
+    reg_x9 = tc->readIntReg(INTREG_X9);
+    reg_x10 = tc->readIntReg(INTREG_X10);
+    fpLast = fp = tc->readIntReg(INTREG_X29);
+    lrLast = lr = tc->readIntReg(INTREG_X30);
+    // Only user programs are simulated.
+    // spTop: current the program is executed on the stack top.
+    spTop = sp = tc->readIntReg(INTREG_SP0);
+
+    // Dump stack:
+    //      +----------------+
+    //      | LR             |
+    //      +----------------+
+    //      | FP             |
+    // -FP->+----------------+
+    //      | Dynamic Alloc  |
+    //      +----------------+
+    //      | Stack Arg Area |
+    // -SP->+----------------+
+    //      | ...            |
+    //      +----------------+
+    //      | Callee Saved   |
+    //      +----------------+
+    //      | Local Vars     |
+    //      +----------------+
+    //      | LR             |
+    //      +----------------+
+    //      | FP             |
+    // -FP->+----------------+
+    //      | Dynamic Alloc  |
+    //      +----------------+
+    //      | Stack Arg Area |
+    // -SP->+----------------+
+    i = 0;
+    while (fp != 0) {
+        ptr = sp;
+        while (ptr < fp) {
+            val = readMem(cpu, tc, (Addr)ptr, __readMem);
+            ss.push(val);
+            std::cout << "Stack:";
+            std::cout << "0x" << std::hex << ptr << std::dec;
+            std::cout << ":";
+            std::cout << "0x" << std::hex << val << std::dec;
+            std::cout << std::endl;
+            ptr += 8;
+            i += 8;
+        }
+        fp_idx_queue.push(i);
+        fpVal = readMem(cpu, tc, (Addr)fp, __readMem);
+        ss.push(fpVal);
+        i += 8;
+        std::cout << "FP:";
+        std::cout << "0x" << std::hex << fp << std::dec;
+        std::cout << ":";
+        std::cout << "0x" << std::hex << fpVal << std::dec;
+        std::cout << std::endl;
+        lr_idx_queue.push(i);
+        lrVal = readMem(cpu, tc, (Addr)(fp + 8), __readMem);
+        ss.push(lrVal);
+        i += 8;
+        std::cout << "LR:";
+        std::cout << "0x" << std::hex << fp + 8 << std::dec;
+        std::cout << ":";
+        std::cout << "0x" << std::hex << lrVal << std::dec;
+        std::cout << std::endl;
+        sp = fp + 16;
+        fp = fpVal;
+        lr = lrVal;
+    }
+    stack_depth = i;
+    spBottom = spTop + stack_depth;
+
+    // Restore altered special registers.
+    tc->setIntReg(INTREG_X9, reg_x9);
+    tc->setIntReg(INTREG_X10, reg_x10);
+    tc->setIntReg(INTREG_X29, fpLast);
+    tc->setIntReg(INTREG_X30, lrLast);
+    tc->setIntReg(INTREG_SP0, spTop);
+    // TODO: save current FP/LR to target CPU.
+    saved_fp = i + 8 + fpLast - spBottom;
+    saved_lr = lrLast;
+}
+
+void
+ISA::dumpStackLoad(BaseCPU *cpu, ThreadContext *tc)
+{
+    int i;
+
+    cpu->simpoint_asm << "/* Restore stack */" << std::endl;
+    i = 0;
+    while (!ss.empty()) {
+        if ((!fp_idx_queue.empty()) && \
+            (fp_idx_queue.top() == stack_depth - i - 8)) {
+            dumpStackedFP(cpu, tc);
+            fp_idx_queue.pop();
+        } else if ((!lr_idx_queue.empty()) && \
+                   (lr_idx_queue.top() == stack_depth - i - 8)) {
+            dumpStackedLR(cpu, tc, ss.top());
+            lr_idx_queue.pop();
+        } else {
+            dumpStacked(cpu, tc, ss.top());
+        }
+        ss.pop();
+        i += 8;
+    }
+    cpu->simpoint_asm << std::endl;
+}
+
+void
+ISA::dumpContextRegsEarly(BaseCPU *cpu, ThreadContext *tc)
+{
+    dumpGenRegStore(cpu, tc);
+    dumpMiscRegStore(cpu, tc);
+}
+
+void
+ISA::dumpContextRegsLate(BaseCPU *cpu, ThreadContext *tc)
+{
+    dumpGenRegLoad(cpu, tc);
+    dumpMiscRegLoad(cpu, tc);
+    dumpLR(cpu, tc, saved_lr);
+}
+
+void
+ISA::dumpSimPointInit(BaseCPU *cpu, ThreadContext *tc,
+    bool (*__readMem)(BaseCPU *cpu, Addr, uint8_t *, unsigned,
+                      Request::Flags flags))
+{
+    dumpContextRegsEarly(cpu, tc);
+    dumpStackStore(cpu, tc, __readMem);
+
+    // Begin Init
+    cpu->simpoint_asm << "/* Begin of SimPoint */" << std::endl;
+    cpu->simpoint_asm << ".global simpoint_entry" << std::endl;
+    cpu->simpoint_asm << ".section .text" << std::endl;
+    cpu->simpoint_asm << ".balign 4" << std::endl;
+    cpu->simpoint_asm << "simpoint_entry:" << std::endl;
+    // End Init
+
+    dumpStackLoad(cpu, tc);
+}
+
+void
+ISA::dumpSimPointExit(BaseCPU *cpu, ThreadContext *tc)
+{
+    // Begin Exit
+    cpu->simpoint_asm << "/* End of SimPoint */" << std::endl;
+    cpu->simpoint_asm << "simpoint_exit:" << std::endl;
+    cpu->simpoint_asm << "exit:" << std::endl;
+    cpu->simpoint_asm << "  nop" << std::endl;
+    cpu->simpoint_asm << "  b     simpoint_exit" << std::endl;
+    // End Exit
+}
+
+void
+ISA::dumpSimPointStart(BaseCPU *cpu, ThreadContext *tc)
+{
+    dumpContextRegsLate(cpu, tc);
+
+    // Begin Start
+    cpu->simpoint_asm << "/* Jump to the head of SimPoint */" << std::endl;
+    cpu->simpoint_asm << "  b     simpoint_start" << std::endl;
+    // End Start
+}
+
+void
+ISA::dumpSimPointStop(BaseCPU *cpu, ThreadContext *tc)
+{
+    // Begin Stop
+    cpu->simpoint_asm << "/* Jump to the tail of SimPoint */" << std::endl;
+    cpu->simpoint_asm << "  b     simpoint_exit" << std::endl;
+    // End Stop
 }
 
 }  // namespace ArmISA
