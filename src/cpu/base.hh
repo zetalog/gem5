@@ -216,6 +216,8 @@ class BaseCPU : public ClockedObject
 
   protected:
     std::vector<BaseInterrupts*> interrupts;
+    std::vector<Addr> symbols;
+    std::vector<Addr> branches;
 
   public:
     BaseInterrupts *
@@ -227,6 +229,9 @@ class BaseCPU : public ClockedObject
         assert(interrupts.size() > tid);
         return interrupts[tid];
     }
+
+    bool markExecuted(Addr address);
+    bool markBranched(Addr address);
 
     virtual void wakeup(ThreadID tid) = 0;
 
