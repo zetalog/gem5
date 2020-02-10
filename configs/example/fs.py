@@ -108,6 +108,8 @@ def build_test_system(np):
         )
         if options.enable_context_switch_stats_dump:
             test_sys.enable_context_switch_stats_dump = True
+    elif buildEnv['TARGET_ISA'] == "riscv":
+        test_sys = makeRiscvSystem(test_mem_mode, bm[0], cmdline=cmdline)
     else:
         fatal("Incapable of building %s full system!", buildEnv['TARGET_ISA'])
 
@@ -190,8 +192,10 @@ def build_test_system(np):
             test_sys.iocache = IOCache(addr_ranges = test_sys.mem_ranges)
             test_sys.iocache.cpu_side = test_sys.iobus.master
             test_sys.iocache.mem_side = test_sys.membus.slave
-        elif not options.external_memory_system:
-            test_sys.iobridge = Bridge(delay='50ns', ranges = test_sys.mem_ranges)
+        elif not options.external_memory_system and \
+                not buildEnv['TARGET_ISA'] == "riscv":
+            test_sys.iobridge = Bridge(delay='50ns', \
+                    ranges = test_sys.mem_ranges)
             test_sys.iobridge.slave = test_sys.iobus.master
             test_sys.iobridge.master = test_sys.membus.slave
 
