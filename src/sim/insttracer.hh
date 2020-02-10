@@ -83,6 +83,8 @@ class InstRecord
     Addr addr; ///< The address that was accessed
     Addr size; ///< The size of the memory request
     unsigned flags; ///< The flags that were assigned to the request.
+    static const int sizeMax = 16;
+    uint8_t memData[sizeMax];
 
     /** @} */
 
@@ -211,6 +213,18 @@ class InstRecord
         data.as_pred = new ::VecPredRegContainer<
             TheISA::VecPredRegSizeBits, TheISA::VecPredRegHasPackedRepr>(d);
         data_status = DataVecPred;
+    }
+
+    void setMemData(uint8_t *data)
+    {
+        if (data == NULL)
+            return;
+        if (size > sizeMax) {
+            std::cout << "WARN: Invalid access size ";
+            std::cout << std::dec << size << "." << std::endl;
+            size = sizeMax;
+        }
+        memcpy(memData, data, size);
     }
 
     void setFetchSeq(InstSeqNum seq)
