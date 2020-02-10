@@ -48,6 +48,7 @@ class SymbolTable
   private:
     ATable addrTable;
     STable symbolTable;
+    ATable targetTable;
 
   private:
     bool
@@ -70,10 +71,12 @@ class SymbolTable
 
     void clear();
     bool insert(Addr address, std::string symbol);
+    bool insert_target(Addr address);
     bool load(const std::string &file);
 
     const ATable &getAddrTable() const { return addrTable; }
     const STable &getSymbolTable() const { return symbolTable; }
+    const ATable &getTargetTable() const { return targetTable; }
 
   public:
     void serialize(const std::string &base, CheckpointOut &cp) const;
@@ -91,6 +94,30 @@ class SymbolTable
         // address. For simplicity, just return the first one.
         symbol = (*i).second;
         return true;
+    }
+
+    bool
+    findTarget(Addr address, std::string &target) const
+    {
+        ATable::const_iterator i = targetTable.find(address);
+        if (i == targetTable.end())
+            return false;
+
+        target = (*i).second;
+        return true;
+    }
+
+    bool
+    findLabel(Addr address, std::string &label) const
+    {
+        Addr target;
+
+        if (findNearestSymbol(address, label, target) &&
+            target == address)
+            return true;
+
+        // Only works when enableTarget is true.
+        return findTarget(address, label);
     }
 
     bool
