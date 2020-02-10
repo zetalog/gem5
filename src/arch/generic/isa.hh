@@ -31,11 +31,27 @@
 #define __ARCH_GENERIC_ISA_HH__
 
 #include "sim/sim_object.hh"
+#include "mem/request.hh"
+
+class BaseCPU;
+class ThreadContext;
 
 class BaseISA : public SimObject
 {
   protected:
     using SimObject::SimObject;
+
+  public:
+    // Dump init of simpoint
+    virtual void dumpSimPointInit(BaseCPU *cpu, ThreadContext *tc,
+        bool (*__readMem)(BaseCPU *cpu, Addr, uint8_t *, unsigned,
+                          Request::Flags)) {};
+    // Dump exit of simpoint
+    virtual void dumpSimPointExit(BaseCPU *cpu, ThreadContext *tc) {};
+    // Dump start of simpoint
+    virtual void dumpSimPointStart(BaseCPU *cpu, ThreadContext *tc) {};
+    // Dump stop of simpoint
+    virtual void dumpSimPointStop(BaseCPU *cpu, ThreadContext *tc) {};
 };
 
 #endif // __ARCH_GENERIC_ISA_HH__

@@ -46,6 +46,7 @@
 #ifndef __CPU_BASE_HH__
 #define __CPU_BASE_HH__
 
+#include <fstream>
 #include <vector>
 
 // Before we do anything else, check if this build is the NULL ISA,
@@ -151,6 +152,12 @@ class BaseCPU : public ClockedObject
     /** Cache the cache line size that we get from the system */
     const unsigned int _cacheLineSize;
 
+    /* Is SimPoint entry point set? */
+    bool _simpointStarted;
+
+    /* SimPoint simulation entry point */
+    Addr simpoint_entry;
+
   public:
 
     /**
@@ -244,6 +251,10 @@ class BaseCPU : public ClockedObject
     void insert_mem_data(Addr addr, uint8_t value,
                          std::list<MemData> &data_array);
 
+    bool traceSimPoint(Addr address);
+    virtual void disasmSimPoint() {};
+    virtual void traceSimPointContexts() {};
+
     virtual void wakeup(ThreadID tid) = 0;
 
     void
@@ -282,6 +293,8 @@ class BaseCPU : public ClockedObject
 
   public:
 
+    // Log file of the disassembled instructions executed by the CPU
+    std::ofstream simpoint_asm;
 
     /** Invalid or unknown Pid. Possible when operating system is not present
      *  or has not assigned a pid yet */
@@ -597,6 +610,13 @@ class BaseCPU : public ClockedObject
             total += cpuList[i]->totalInsts();
 
         return total;
+    }
+
+    static void dumpSimulatedInsts()
+    {
+        int size = cpuList.size();
+        for (int i = 0; i < size; ++i)
+            cpuList[i]->disasmSimPoint();
     }
 
     static Counter numSimulatedOps()
