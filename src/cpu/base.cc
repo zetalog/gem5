@@ -748,6 +748,70 @@ bool AddressMonitor::doMonitor(PacketPtr pkt) {
 }
 
 
+bool
+BaseCPU::find_mem_data(Addr addr, std::list<MemData> &data_array)
+{
+    for (auto &item : data_array) {
+        if (addr >= item.addr && addr < item.addr + item.size)
+            return true;
+    }
+    return false;
+}
+
+void
+BaseCPU::insert_mem_data(Addr addr, uint8_t value,
+                         std::list<MemData> &data_array)
+{
+    MemData data(addr, value);
+    bool merged = false;
+
+again:
+    for (auto it = data_array.begin(); it != data_array.end(); ++it) {
+        if ((*it).addr > data.addr) {
+            std::cout << "Memory(" << data.size << "):";
+            std::cout << std::hex << "0x" << data.addr << std::dec;
+            std::cout << std::endl;
+            data_array.insert(it, data);
+            merged = true;
+            break;
+        }
+        if ((*it).merge(data)) {
+            data = *it;
+            data_array.erase(it);
+            goto again;
+        }
+    }
+    if (!merged) {
+        std::cout << "Memory(" << data.size << "):";
+        std::cout << std::hex << "0x" << data.addr << std::dec;
+        std::cout << std::endl;
+        data_array.push_back(data);
+    }
+}
+
+bool
+BaseCPU::markAccessed(OpClass opcls, Addr addr, Addr size, uint8_t *data)
+{
+    int i;
+
+    if (data == NULL)
+        return false;
+    for (i = 0; i < size; i++) {
+        Addr byteAddr = addr + i;
+        uint8_t byteData = data[i];
+
+        if (!find_mem_data(byteAddr, reads) &&
+            !find_mem_data(byteAddr, writes)) {
+            // First time access
+            if (opcls == MemReadOp)
+                insert_mem_data(byteAddr, byteData, reads);
+            else
+                insert_mem_data(byteAddr, byteData, writes);
+        }
+    }
+    return true;
+}
+
 void
 BaseCPU::traceFunctionsInternal(Addr pc)
 {

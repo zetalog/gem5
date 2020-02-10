@@ -53,6 +53,7 @@
 #include "arch/generic/interrupts.hh"
 #include "arch/isa_traits.hh"
 #include "arch/microcode_rom.hh"
+#include "base/mem_data.hh"
 #include "base/statistics.hh"
 #include "sim/clocked_object.hh"
 #include "sim/eventq.hh"
@@ -218,6 +219,8 @@ class BaseCPU : public ClockedObject
     std::vector<BaseInterrupts*> interrupts;
     std::vector<Addr> symbols;
     std::vector<Addr> branches;
+    std::list<MemData> reads;
+    std::list<MemData> writes;
 
   public:
     BaseInterrupts *
@@ -232,6 +235,10 @@ class BaseCPU : public ClockedObject
 
     bool markExecuted(Addr address);
     bool markBranched(Addr address);
+    bool markAccessed(OpClass opcls, Addr addr, Addr size, uint8_t *data);
+    bool find_mem_data(Addr addr, std::list<MemData> &data_array);
+    void insert_mem_data(Addr addr, uint8_t value,
+                         std::list<MemData> &data_array);
 
     virtual void wakeup(ThreadID tid) = 0;
 
