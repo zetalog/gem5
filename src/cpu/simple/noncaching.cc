@@ -133,6 +133,7 @@ realDump:
         pc.set(addr);
         thread->pcState(pc);
         t_info.fetchOffset = 0;
+        decoder->reset();
 
         while (addr < funcEnd) {
             if (doDumpSymbols && simpoint_entry == addr) {
@@ -161,12 +162,22 @@ realDump:
                 if (instPtr) {
                     t_info.stayAtPC = false;
                     thread->pcState(pc);
-                } else {
-                    fatal("Fetching MicroOP?");
-                    t_info.stayAtPC = true;
-                    t_info.fetchOffset += sizeof(MachInst);
+                    goto do_not_fetch_more;
                 }
 
+                /* Fetch more if the 1st decoding failed */
+                t_info.stayAtPC = true;
+                t_info.fetchOffset += sizeof(MachInst);
+                fetchPC = (addr & PCMask) + t_info.fetchOffset;
+                decoder->moreBytes(pc, fetchPC, inst);
+                instPtr = decoder->decode(pc);
+                if (instPtr) {
+                    t_info.stayAtPC = false;
+                    thread->pcState(pc);
+                } else {
+                    fatal("The 2nd decoding at 0x%lx failed", addr);
+                }
+do_not_fetch_more:
                 if (doDumpNormal) {
                     disassembly = instPtr->disassemble(addr, symtab, true);
                     simpoint_asm << disassembly << std::endl;
@@ -177,8 +188,11 @@ realDump:
                         markBranched(target);
                 }
             }
-            if (fault != NoFault || !t_info.stayAtPC)
+            if (fault != NoFault || !t_info.stayAtPC) {
+                if (!curStaticInst)
+                    curStaticInst = instPtr;
                 advancePC(fault);
+            }
             pc = thread->pcState();
             addr = pc.instAddr();
         }
