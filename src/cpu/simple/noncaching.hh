@@ -55,6 +55,7 @@ class NonCachingSimpleCPU : public AtomicSimpleCPU
     void disasmSimPoint();
     void traceSimPointContexts();
     void disasmSimPointContexts();
+    void dumpMemInfo();
 
   protected:
     Tick sendPacket(MasterPort &port, const PacketPtr &pkt) override;

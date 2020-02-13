@@ -36,6 +36,7 @@
  */
 
 #include "cpu/simple/noncaching.hh"
+#include "base/mem_page.hh"
 
 using namespace TheISA;
 
@@ -209,6 +210,7 @@ realDump:
     }
     simpoint_asm << std::endl;
     thread->getIsaPtr()->dumpSimPointExit(this, thread);
+    dumpMemInfo();
 }
 
 static bool
@@ -232,4 +234,59 @@ NonCachingSimpleCPU::traceSimPointContexts()
 
     std::cout << "Dumping contexts during execution..." << std::endl;
     thread->getIsaPtr()->dumpSimPointInit(this, thread, ::readMem);
+}
+
+void
+NonCachingSimpleCPU::dumpMemInfo()
+{
+    std::set<MemPage> page_set;
+    Addr page_addr;
+    Addr page_offset;
+    uint8_t *page_data_buf = NULL;
+    std::pair<std::set<MemPage>::iterator, bool> ret;
+    std::set<MemPage>::iterator it;
+    int mem_info_cnt = 0;
+
+    /* Merge memory reads and writes into a page set.
+       If one position in page is read more than once, then the value of the
+       first read is recored. */
+    for (auto &item : reads) {
+        page_addr = item.addr & MEM_PAGE_MASK;
+        page_offset = item.addr & (~MEM_PAGE_MASK);
+        MemPage curr_page(page_addr);
+        ret = page_set.insert(curr_page);
+        page_data_buf = (uint8_t *)(*ret.first).data;
+        for (int i = 0; i < item.size; i++) {
+            uint8_t byte_value = *((uint8_t *)&item.value + i);
+            if (page_data_buf[page_offset + i] == 0)
+                page_data_buf[page_offset + i] = byte_value;
+        }
+    }
+    for (auto &item : writes) {
+        page_addr = item.addr & MEM_PAGE_MASK;
+        MemPage curr_page(page_addr);
+        page_set.insert(curr_page);
+    }
+
+    /* Dump address-value pairs in the order of address growth. */
+    simpoint_asm << "#ifdef SIMPOINT_MEM_INFO" << std::endl;
+    simpoint_asm << "/* Address-Value pairs */" << std::endl;
+    simpoint_asm << std::hex;
+    for (it = page_set.begin(); it != page_set.end(); ++it) {
+        page_addr = (*it).addr;
+        page_data_buf = (uint8_t *)(*it).data;
+        int i = 0;
+        do {
+            uint64_t mem_value = *(uint64_t *)(page_data_buf + i);
+            Addr mem_addr = page_addr + i;
+            if (mem_value != 0) {
+                simpoint_asm << "0x" << mem_addr
+                             << " 0x" << mem_value << std::endl;
+                mem_info_cnt++;
+            }
+            i += sizeof(mem_value);;
+        } while (i < MEM_PAGE_SIZE);
+    }
+    simpoint_asm << std::dec;
+    simpoint_asm << "#endif // SIMPOINT_MEM_INFO" << std::endl;
 }
