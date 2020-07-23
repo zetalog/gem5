@@ -148,6 +148,9 @@ class BaseCPU : public ClockedObject
     /** Cache the cache line size that we get from the system */
     const unsigned int _cacheLineSize;
 
+    /* Is SimPoint slicing enabled? */
+    bool _simpointSlicingEnabled;
+
     /* Is SimPoint entry point set? */
     bool _simpointStarted;
 

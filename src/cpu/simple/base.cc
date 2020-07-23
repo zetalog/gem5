@@ -537,7 +537,9 @@ BaseSimpleCPU::preExecute()
         PCState pcState = thread->pcState();
 
         // Mark the PC related symbol as executed.
-        traceSimPoint(pcState.instAddr());
+        if (_simpointSlicingEnabled) {
+            traceSimPoint(pcState.instAddr());
+        }
 
         traceData = tracer->getInstRecord(curTick(), thread->getTC(),
                 curStaticInst, pcState, curMacroStaticInst);
