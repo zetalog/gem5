@@ -247,6 +247,15 @@ NonCachingSimpleCPU::dumpMemInfo()
     std::set<MemPage>::iterator it;
     int mem_info_cnt = 0;
 
+    simpoint_asm << "#ifdef SIMPOINT_MEM_INFO" << std::endl;
+
+    /* Dump VMA list */
+    std::string vma_list;
+    vma_list = this->getContext(0)->getProcessPtr()->memState->printVmaList();
+    simpoint_asm << "/* VMA list */" << std::endl;
+    simpoint_asm << vma_list;
+    simpoint_asm << std::endl;
+
     /* Merge memory reads and writes into a page set.
        If one position in page is read more than once, then the value of the
        first read is recored. */
@@ -269,7 +278,6 @@ NonCachingSimpleCPU::dumpMemInfo()
     }
 
     /* Dump address-value pairs in the order of address growth. */
-    simpoint_asm << "#ifdef SIMPOINT_MEM_INFO" << std::endl;
     simpoint_asm << "/* Address-Value pairs */" << std::endl;
     simpoint_asm << std::hex;
     for (it = page_set.begin(); it != page_set.end(); ++it) {
@@ -289,4 +297,5 @@ NonCachingSimpleCPU::dumpMemInfo()
     }
     simpoint_asm << std::dec;
     simpoint_asm << "#endif // SIMPOINT_MEM_INFO" << std::endl;
+    simpoint_asm << std::endl;
 }
