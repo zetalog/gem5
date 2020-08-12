@@ -70,6 +70,19 @@ Trace::ExeTracerRecord::traceInst(const StaticInstPtr &inst, bool ran)
         cpu->markAccessed(opcls, addr, size, memData);
     }
 
+    Loader::SymbolTable *symtab = Loader::debugSymbolTable;
+    TheISA::PCState pc;
+    TheISA::PCState target;
+    Addr bt_addr;
+    std::string label;
+    pc = thread->pcState();
+    if (inst->hasBranchTarget(pc, thread, target)) {
+        bt_addr = pc.npc();
+        if (symtab && !symtab->findLabel(bt_addr, label))
+            symtab->insert_target(bt_addr);
+        cpu->markBranched(bt_addr);
+    }
+
     if (!Debug::ExecUser || !Debug::ExecKernel) {
         bool in_user_mode = TheISA::inUserMode(thread);
         if (in_user_mode && !Debug::ExecUser) return;
