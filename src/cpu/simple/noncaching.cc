@@ -192,6 +192,16 @@ realDump:
 
     thread->getIsaPtr()->dumpSimPointStop(this, thread);
 
+    simpoint_asm << "/* Branch targets list */" << std::endl;
+    for (auto b : branches) {
+        std::string label;
+        if (!symtab->findLabel(b, label))
+            label = std::string("simpoint_bt_unknown");
+        simpoint_asm << "#define BT_0x" << std::hex << b << std::dec
+                     << " " << label << std::endl;
+    }
+    simpoint_asm << std::endl;
+
     simpoint_asm << "/* Branch targets not executed */" << std::endl;
     for (auto b : branches) {
         if (!symtab->findNearestSymbol(b, sym_str, funcStart, funcEnd))
