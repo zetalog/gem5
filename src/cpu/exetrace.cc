@@ -66,7 +66,8 @@ Trace::ExeTracerRecord::traceInst(const StaticInstPtr &inst, bool ran)
     std::stringstream outs;
     OpClass opcls = inst->opClass();
 
-    if (opcls == MemReadOp || opcls == MemWriteOp) {
+    if (opcls == MemReadOp || opcls == MemWriteOp ||
+        opcls == FloatMemReadOp || opcls == FloatMemWriteOp) {
         cpu->markAccessed(opcls, addr, size, memData);
     }
 

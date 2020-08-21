@@ -816,7 +816,7 @@ BaseCPU::markAccessed(OpClass opcls, Addr addr, Addr size, uint8_t *data)
         if (!find_mem_data(byteAddr, reads) &&
             !find_mem_data(byteAddr, writes)) {
             // First time access
-            if (opcls == MemReadOp)
+            if (opcls == MemReadOp || opcls == FloatMemReadOp)
                 insert_mem_data(byteAddr, byteData, reads);
             else
                 insert_mem_data(byteAddr, byteData, writes);
