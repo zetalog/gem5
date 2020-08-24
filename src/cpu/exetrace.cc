@@ -81,7 +81,7 @@ Trace::ExeTracerRecord::traceInst(const StaticInstPtr &inst, bool ran)
         bt_addr = pc.npc();
         if (symtab && !symtab->findLabel(bt_addr, label))
             symtab->insert_target(bt_addr);
-        cpu->markBranched(bt_addr);
+        cpu->markBranched(pc.pc(), bt_addr);
     }
 
     if (!Debug::ExecUser || !Debug::ExecKernel) {

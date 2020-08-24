@@ -888,10 +888,14 @@ BaseCPU::markExecuted(Addr address)
 }
 
 bool
-BaseCPU::markBranched(Addr address)
+BaseCPU::markBranched(Addr inst_pc, Addr target)
 {
     int size;
     int i;
+    Addr address = target;
+    struct BranchTarget bt;
+    bt.inst_pc = inst_pc;
+    bt.target = target;
 
     size = symbols.size();
     i = 0;
@@ -901,18 +905,24 @@ BaseCPU::markBranched(Addr address)
         i++;
     }
 
+    /* BranchTargets with same target and different inst_pc are
+     * treated as multiple instances */
     size = branches.size();
     i = 0;
     while (i < size) {
-        if (address == branches[i])
-            return false;
+        if (address == branches[i].target) {
+            if (bt.inst_pc  == branches[i].inst_pc)
+                return false;
+            else
+                break;
+        }
 
-        if (address < branches[i] &&
-            (i == 0 || address > branches[i - 1]))
+        if (address < branches[i].target &&
+            (i == 0 || address > branches[i - 1].target))
             break;
         i++;
     };
-    branches.insert(branches.begin() + i, address);
+    branches.insert(branches.begin() + i, bt);
     return true;
 }
 

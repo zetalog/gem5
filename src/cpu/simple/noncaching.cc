@@ -173,7 +173,7 @@ realDump:
                     bool ret1 = instPtr->markTarget(addr, target, symtab);
                     bool ret2 = symtab->findLabel(target, sym_str);
                     if (ret1 && ret2)
-                        markBranched(target);
+                        markBranched(addr, target);
                 }
             }
             if (fault != NoFault || !t_info.stayAtPC)
@@ -195,15 +195,19 @@ realDump:
     simpoint_asm << "/* Branch targets list */" << std::endl;
     for (auto b : branches) {
         std::string label;
-        if (!symtab->findLabel(b, label))
+        if (!symtab->findLabel(b.target, label))
             label = std::string("simpoint_bt_unknown");
-        simpoint_asm << "#define BT_0x" << std::hex << b << std::dec
+        simpoint_asm << "#define BT_0x" << std::hex << b.inst_pc
+                     << "_0x" << b.target << std::dec
                      << " " << label << std::endl;
     }
     simpoint_asm << std::endl;
 
     simpoint_asm << "/* Branch targets not executed */" << std::endl;
-    for (auto b : branches) {
+    std::set<Addr> branch_targets;
+    for (auto b : branches)
+        branch_targets.insert(b.target);
+    for (auto b : branch_targets) {
         if (!symtab->findNearestSymbol(b, sym_str, funcStart, funcEnd))
             continue;
         if (funcStart != b)

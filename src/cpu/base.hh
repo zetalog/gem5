@@ -83,6 +83,12 @@ struct AddressMonitor
     bool gotWakeup;
 };
 
+struct BranchTarget
+{
+    Addr inst_pc;
+    Addr target;
+};
+
 class CPUProgressEvent : public Event
 {
   protected:
@@ -228,7 +234,7 @@ class BaseCPU : public ClockedObject
   protected:
     std::vector<BaseInterrupts*> interrupts;
     std::vector<Addr> symbols;
-    std::vector<Addr> branches;
+    std::vector<struct BranchTarget> branches;
     std::list<MemData> reads;
     std::list<MemData> writes;
 
@@ -244,7 +250,7 @@ class BaseCPU : public ClockedObject
     }
 
     bool markExecuted(Addr address);
-    bool markBranched(Addr address);
+    bool markBranched(Addr inst_pc, Addr target);
     bool markAccessed(OpClass opcls, Addr addr, Addr size, uint8_t *data);
     bool find_mem_data(Addr addr, std::list<MemData> &data_array);
     void insert_mem_data(Addr addr, uint8_t value,
