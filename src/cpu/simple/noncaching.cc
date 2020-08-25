@@ -168,7 +168,9 @@ realDump:
 
                 if (doDumpNormal) {
                     disassembly = instPtr->disassemble(addr, symtab, true);
-                    simpoint_asm << disassembly << std::endl;
+                    simpoint_asm << disassembly
+                                 << " // 0x" << std::hex << addr << std::dec
+                                 << std::endl;
                 } else {
                     bool ret1 = instPtr->markTarget(addr, target, symtab);
                     bool ret2 = symtab->findLabel(target, sym_str);
